@@ -23,6 +23,7 @@ l1:
   explorer: https://goerli.etherscan.io
 
 protocol_versions_addr: null # todo
+superchain_config_addr: null # todo
 EOF
 ```
 Superchain-wide configuration, like the `ProtocolVersions` contract address, should be configured here when available.
@@ -110,32 +111,10 @@ cat > $SUPERCHAIN_REPO/superchain/extra/addresses/$SUPERCHAIN_TARGET/$CHAIN_NAME
   "L2OutputOracleProxy": "$(jq -j .address $DEPLOYMENTS_DIR/L2OutputOracleProxy.json)",
   "OptimismMintableERC20FactoryProxy": "$(jq -j .address $DEPLOYMENTS_DIR/OptimismMintableERC20FactoryProxy.json)",
   "OptimismPortalProxy": "$(jq -j .address $DEPLOYMENTS_DIR/OptimismPortalProxy.json)",
+  "SytemConfigProxy": "$(jq -j .address $DEPLOYMENTS_DIR/SystemConfigProxy.json)",
   "ProxyAdmin": "$(jq -j .address $DEPLOYMENTS_DIR/ProxyAdmin.json)"
 }
 EOF
-```
-
-#### `extra/genesis`
-
-The `extra/genesis` directory hosts compressed `genesis.json` definitions that pull in the bytecode by hash
-
-The genesis largely consists of contracts common with other chains:
-all contract bytecode is deduplicates and hosted in the `extra/bytecodes` directory.
-
-The format is a gzipped JSON `genesis.json` file, with either:
-- a `alloc` attribute, structured like a standard `genesis.json`,
-  but with `codeHash` (bytes32, `keccak256` hash of contract code) attribute per account,
-  instead of the `code` attribute seen in standard Ethereum genesis definitions.
-- a `stateHash` attribute: to omit a large state (e.g. for networks with a re-genesis or migration history).
-  Nodes can load the genesis block header, and state-sync to complete the node initialization. 
-
-```bash
-# create extra genesis data
-mkdir -p $SUPERCHAIN_REPO/superchain/extra/genesis/$SUPERCHAIN_TARGET
-go run ./op-chain-ops/cmd/registry-data \
-  --l2-genesis=$GENESIS_CONFIG \
-  --bytecodes-dir=$SUPERCHAIN_REPO/superchain/extra/bytecodes \
-  --output=$SUPERCHAIN_REPO/superchain/extra/genesis/$SUPERCHAIN_TARGET/$CHAIN_NAME.json.gz
 ```
 
 #### `extra/genesis-system-configs`
@@ -151,4 +130,27 @@ by inspecting the `SystemConfig` receipts of this given L1 block.
 # (this is deprecated, users should load this from L1, when available via SystemConfig).
 mkdir -p $SUPERCHAIN_REPO/superchain/extra/genesis-system-configs/$SUPERCHAIN_TARGET
 jq -r .genesis.system_config $ROLLUP_CONFIG > $SUPERCHAIN_REPO/superchain/extra/genesis-system-configs/$SUPERCHAIN_TARGET/$CHAIN_NAME.json
+```
+
+#### `extra/genesis`
+
+The `extra/genesis` directory hosts compressed `genesis.json` definitions that pull in the bytecode by hash
+
+The genesis largely consists of contracts common with other chains:
+all contract bytecode is deduplicates and hosted in the `extra/bytecodes` directory.
+
+The format is a gzipped JSON `genesis.json` file, with either:
+- a `alloc` attribute, structured like a standard `genesis.json`,
+  but with `codeHash` (bytes32, `keccak256` hash of contract code) attribute per account,
+  instead of the `code` attribute seen in standard Ethereum genesis definitions.
+- a `stateHash` attribute: to omit a large state (e.g. for networks with a re-genesis or migration history).
+  Nodes can load the genesis block header, and state-sync to complete the node initialization.
+
+```bash
+# create extra genesis data
+mkdir -p $SUPERCHAIN_REPO/superchain/extra/genesis/$SUPERCHAIN_TARGET
+go run ./op-chain-ops/cmd/registry-data \
+  --l2-genesis=$GENESIS_CONFIG \
+  --bytecodes-dir=$SUPERCHAIN_REPO/superchain/extra/bytecodes \
+  --output=$SUPERCHAIN_REPO/superchain/extra/genesis/$SUPERCHAIN_TARGET/$CHAIN_NAME.json.gz
 ```

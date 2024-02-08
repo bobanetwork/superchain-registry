@@ -4,7 +4,72 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
+
+func TestAddressFor(t *testing.T) {
+	al := AddressList{
+		ProxyAdmin:     HexToAddress("0xD98bD7a1F2384D890d0D6153CbCFcCF6F813ab6c"),
+		AddressManager: Address{},
+	}
+	want := HexToAddress("0xD98bD7a1F2384D890d0D6153CbCFcCF6F813ab6c")
+	got, err := al.AddressFor("ProxyAdmin")
+	require.NoError(t, err)
+	require.Equal(t, want, got)
+	_, err = al.AddressFor("AddressManager")
+	require.Error(t, err)
+	_, err = al.AddressFor("Garbage")
+	require.Error(t, err)
+}
+
+func TestVersionFor(t *testing.T) {
+	cl := ContractVersions{
+		L1CrossDomainMessenger: "1.9.9",
+		OptimismPortal:         "",
+	}
+	want := "1.9.9"
+	got, err := cl.VersionFor("L1CrossDomainMessenger")
+	require.NoError(t, err)
+	require.Equal(t, want, got)
+	_, err = cl.VersionFor("OptimismPortal")
+	require.Error(t, err)
+	_, err = cl.VersionFor("Garbage")
+	require.Error(t, err)
+}
+func TestChainIds(t *testing.T) {
+	chainIDs := map[uint64]bool{}
+
+	storeIfUnique := func(chainId uint64) {
+		if chainIDs[chainId] {
+			t.Fatalf("duplicate chain ID %d", chainId)
+		}
+		chainIDs[chainId] = true
+	}
+
+	targets, err := superchainFS.ReadDir("configs")
+	require.NoError(t, err)
+
+	for _, target := range targets {
+		if target.IsDir() {
+			entries, err := superchainFS.ReadDir(path.Join("configs", target.Name()))
+			require.NoError(t, err)
+			for _, entry := range entries {
+				if !isConfigFile(entry) {
+					continue
+				}
+				configBytes, err := superchainFS.ReadFile(path.Join("configs", target.Name(), entry.Name()))
+				require.NoError(t, err)
+				var chainConfig ChainConfig
+
+				require.NoError(t, yaml.Unmarshal(configBytes, &chainConfig))
+
+				storeIfUnique(chainConfig.ChainID)
+			}
+		}
+	}
+}
 
 func TestConfigs(t *testing.T) {
 	n := 0
@@ -89,9 +154,12 @@ func TestContractImplementations(t *testing.T) {
 // TestContractVersionsCheck will fail if the superchain semver file
 // is not read correctly.
 func TestContractVersionsCheck(t *testing.T) {
-	if err := SuperchainSemver.Check(); err != nil {
-		t.Fatal(err)
+	for _, versions := range SuperchainSemver {
+		if err := versions.Check(); err != nil {
+			t.Fatal(err)
+		}
 	}
+
 }
 
 // TestContractVersionsResolve will test that the high lever interface used works.
@@ -285,19 +353,45 @@ func TestContractBytecodes(t *testing.T) {
 // TestCanyonTimestampOnBlockBoundary asserts that Canyon will activate on a block's timestamp.
 // This is critical because the create2Deployer only activates on a block's timestamp.
 func TestCanyonTimestampOnBlockBoundary(t *testing.T) {
-	for superchainName, superchainConfig := range Superchains {
-		if superchainConfig.Config.CanyonTime == nil {
-			continue
-		}
-		ct := *superchainConfig.Config.CanyonTime
+	testStandardTimestampOnBlockBoundary(t, func(s *Superchain) *uint64 { return s.Config.CanyonTime })
+}
+
+// TestEcotoneTimestampOnBlockBoundary asserts that Ecotone will activate on a block's timestamp.
+// This is critical because the L2 upgrade transactions only activates on a block's timestamp.
+func TestEcotoneTimestampOnBlockBoundary(t *testing.T) {
+	testStandardTimestampOnBlockBoundary(t, func(s *Superchain) *uint64 { return s.Config.EcotoneTime })
+}
+
+// TestAevoForkTimestamps ensures that network upgades that occur on a block boundary
+// also occur on Aevo which has a non-standard block time.
+func TestAevoForkTimestamps(t *testing.T) {
+	aevoGenesisL2Time := uint64(1679193011)
+	aevoBlockTime := uint64(10)
+	config := Superchains["mainnet"]
+	t.Run("canyon", testNetworkUpgradeTimestampOffset(aevoGenesisL2Time, aevoBlockTime, config.Config.CanyonTime))
+	t.Run("ecotone", testNetworkUpgradeTimestampOffset(aevoGenesisL2Time, aevoBlockTime, config.Config.EcotoneTime))
+}
+
+func testStandardTimestampOnBlockBoundary(t *testing.T, ts func(*Superchain) *uint64) {
+	for _, superchainConfig := range Superchains {
 		for _, id := range superchainConfig.ChainIDs {
 			chainCfg := OPChains[id]
-			canyonOffset := ct - chainCfg.Genesis.L2Time
-			// Block time is hardcoded in op-node/rollup/superchain.go
-			if canyonOffset%2 != 0 {
-				t.Fatalf("Canyon time on superchain %v for %v is not on the block time. canyon time: %v. L2 start time: %v, block time: %v",
-					superchainName, id, ct, chainCfg.Genesis.L2Time, 2)
-			}
+			t.Run(chainCfg.Name, testNetworkUpgradeTimestampOffset(chainCfg.Genesis.L2Time, 2, ts(superchainConfig)))
+		}
+	}
+}
+
+func testNetworkUpgradeTimestampOffset(l2GenesisTime uint64, blockTime uint64, upgradeTime *uint64) func(t *testing.T) {
+	return func(t *testing.T) {
+		if upgradeTime == nil {
+			t.Skip("No network upgrade time")
+		}
+		if *upgradeTime == 0 {
+			t.Skip("Upgrade occurred at genesis")
+		}
+		offset := *upgradeTime - l2GenesisTime
+		if offset%blockTime != 0 {
+			t.Fatalf("HF time is not on the block time. network upgade time: %v. L2 start time: %v, block time: %v ", *upgradeTime, l2GenesisTime, blockTime)
 		}
 	}
 }

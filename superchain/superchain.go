@@ -4,8 +4,10 @@ import (
 	"compress/gzip"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"path"
 	"reflect"
 	"strings"
@@ -24,7 +26,7 @@ var extraFS embed.FS
 //go:embed implementations
 var implementationsFS embed.FS
 
-//go:embed semver.yaml
+//go:embed configs/**/semver.yaml
 var semverFS embed.FS
 
 type BlockID struct {
@@ -68,7 +70,38 @@ type AddressList struct {
 	L2OutputOracleProxy               Address `json:"L2OutputOracleProxy"`
 	OptimismMintableERC20FactoryProxy Address `json:"OptimismMintableERC20FactoryProxy"`
 	OptimismPortalProxy               Address `json:"OptimismPortalProxy"`
+	SystemConfigProxy                 Address `json:"SystemConfigProxy"`
 	ProxyAdmin                        Address `json:"ProxyAdmin"`
+}
+
+// AddressFor returns a nonzero address for the supplied contract name, if it has been specified
+// (and an error otherwise). Useful for slicing into the struct using a string.
+func (a AddressList) AddressFor(contractName string) (Address, error) {
+	var address Address
+	switch contractName {
+	case "ProxyAdmin":
+		address = a.ProxyAdmin
+	case "L1CrossDomainMessengerProxy":
+		address = a.L1CrossDomainMessengerProxy
+	case "L1ERC721BridgeProxy":
+		address = a.L1ERC721BridgeProxy
+	case "L1StandardBridgeProxy":
+		address = a.L1StandardBridgeProxy
+	case "L2OutputOrcaleProxy":
+		address = a.L2OutputOracleProxy
+	case "OptimismMintableERC20FactoryProxy":
+		address = a.OptimismMintableERC20FactoryProxy
+	case "OptimismPortalProxy":
+		address = a.OptimismPortalProxy
+	case "SystemConfigProxy":
+		address = a.SystemConfigProxy
+	default:
+		return address, errors.New("no such contract name")
+	}
+	if address == (Address{}) {
+		return address, errors.New("no address or zero address specified")
+	}
+	return address, nil
 }
 
 // ImplementationList represents the set of implementation contracts to be used together
@@ -199,6 +232,34 @@ type ContractVersions struct {
 	OptimismMintableERC20Factory string `yaml:"optimism_mintable_erc20_factory"`
 	OptimismPortal               string `yaml:"optimism_portal"`
 	SystemConfig                 string `yaml:"system_config"`
+}
+
+// VersionFor returns the version for the supplied contract name, if it exits
+// (and an error otherwise). Useful for slicing into the struct using a string.
+func (c ContractVersions) VersionFor(contractName string) (string, error) {
+	var version string
+	switch contractName {
+	case "L1CrossDomainMessenger":
+		version = c.L1CrossDomainMessenger
+	case "L1ERC721Bridge":
+		version = c.L1ERC721Bridge
+	case "L1StandardBridge":
+		version = c.L1StandardBridge
+	case "L2OutputOrcale":
+		version = c.L2OutputOracle
+	case "OptimismMintableERC20Factory":
+		version = c.OptimismMintableERC20Factory
+	case "OptimismPortal":
+		version = c.OptimismPortal
+	case "SystemConfig":
+		version = c.SystemConfig
+	default:
+		return "", errors.New("no such contract name")
+	}
+	if version == "" {
+		return "", errors.New("no version specified")
+	}
+	return version, nil
 }
 
 // Check will sanity check the validity of the semantic version strings
@@ -367,11 +428,12 @@ type SuperchainConfig struct {
 	L1   SuperchainL1Info `yaml:"l1"`
 
 	ProtocolVersionsAddr *Address `yaml:"protocol_versions_addr,omitempty"`
+	SuperchainConfigAddr *Address `yaml:"superchain_config_addr,omitempty"`
 
 	// Hardfork Configuration
 	CanyonTime  *uint64 `yaml:"canyon_time,omitempty"`
 	DeltaTime   *uint64 `yaml:"delta_time,omitempty"`
-	EclipseTime *uint64 `yaml:"eclipse_time,omitempty"`
+	EcotoneTime *uint64 `yaml:"ecotone_time,omitempty"`
 	FjordTime   *uint64 `yaml:"fjord_time,omitempty"`
 }
 
@@ -397,15 +459,20 @@ var GenesisSystemConfigs = map[uint64]*GenesisSystemConfig{}
 // to chain by chain id.
 var Implementations = map[uint64]ContractImplementations{}
 
-// SuperchainSemver represents a global mapping of contract name to desired semver version.
-var SuperchainSemver ContractVersions
+// SuperchainSemver maps superchain name to a contract name : approved semver version structure.
+var SuperchainSemver map[string]ContractVersions
+
+func isConfigFile(c fs.DirEntry) bool {
+	return (!c.IsDir() &&
+		strings.HasSuffix(c.Name(), ".yaml") &&
+		c.Name() != "superchain.yaml" &&
+		c.Name() != "semver.yaml")
+
+}
 
 func init() {
 	var err error
-	SuperchainSemver, err = newContractVersions()
-	if err != nil {
-		panic(fmt.Errorf("failed to read semver.yaml: %w", err))
-	}
+	SuperchainSemver = make(map[string]ContractVersions)
 
 	superchainTargets, err := superchainFS.ReadDir("configs")
 	if err != nil {
@@ -413,9 +480,16 @@ func init() {
 	}
 	// iterate over superchain-target entries
 	for _, s := range superchainTargets {
+
 		if !s.IsDir() {
 			continue // ignore files, e.g. a readme
 		}
+
+		SuperchainSemver[s.Name()], err = newContractVersions(s.Name())
+		if err != nil {
+			panic(fmt.Errorf("failed to read semver.yaml: %w", err))
+		}
+
 		// Load superchain-target config
 		superchainConfigData, err := superchainFS.ReadFile(path.Join("configs", s.Name(), "superchain.yaml"))
 		if err != nil {
@@ -433,11 +507,8 @@ func init() {
 			panic(fmt.Errorf("failed to read superchain dir: %w", err))
 		}
 		for _, c := range chainEntries {
-			if c.IsDir() || !strings.HasSuffix(c.Name(), ".yaml") {
-				continue // ignore files. Chains must be a directory of configs.
-			}
-			if c.Name() == "superchain.yaml" {
-				continue // already processed
+			if !isConfigFile(c) {
+				continue
 			}
 			// load chain config
 			chainConfigData, err := superchainFS.ReadFile(path.Join("configs", s.Name(), c.Name()))
@@ -495,9 +566,9 @@ func init() {
 
 // newContractVersions will read the contract versions from semver.yaml
 // and check to make sure that it is valid.
-func newContractVersions() (ContractVersions, error) {
+func newContractVersions(superchain string) (ContractVersions, error) {
 	var versions ContractVersions
-	semvers, err := semverFS.ReadFile("semver.yaml")
+	semvers, err := semverFS.ReadFile(path.Join("configs", superchain, "semver.yaml"))
 	if err != nil {
 		return versions, fmt.Errorf("failed to read semver.yaml: %w", err)
 	}
