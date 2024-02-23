@@ -520,11 +520,6 @@ func init() {
 		}
 		superchainEntry.Superchain = s.Name()
 
-		// HACK: special case for boba-sepolia
-		if s.Name() == "boba-sepolia" {
-			superchainEntry.Superchain = "sepolia"
-		}
-
 		// iterate over the chains of this superchain-target
 		chainEntries, err := superchainFS.ReadDir(path.Join("configs", s.Name()))
 		if err != nil {
@@ -575,11 +570,6 @@ func init() {
 			OPChains[chainConfig.ChainID] = &chainConfig
 			Addresses[chainConfig.ChainID] = &addrs
 			GenesisSystemConfigs[chainConfig.ChainID] = &genesisSysCfg
-
-			// HACK: special case for boba-sepolia
-			if s.Name() == "boba-sepolia" {
-				chainConfig.Superchain = "sepolia"
-			}
 		}
 
 		Superchains[superchainEntry.Superchain] = &superchainEntry
