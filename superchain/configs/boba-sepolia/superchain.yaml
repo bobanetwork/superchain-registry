@@ -1,0 +1,10 @@
+name: Sepolia
+l1:
+  chain_id: 11155111
+  public_rpc: https://ethereum-sepolia-rpc.allthatnode.com
+  explorer: https://sepolia.etherscan.io
+
+canyon_time: 1705600788 # Thu Jan 18 2024 17:59:48 UTC 2024
+regolith_time: 1705600788 # Thu Jan 18 2024 17:59:48 UTC 2024
+delta_time: 1709078400 # Wed Feb 28 2024 00:00:00 UTC 2024
+ecotone_time: 1709078400 # Wed Feb 28 2024 00:00:00 UTC 2024
