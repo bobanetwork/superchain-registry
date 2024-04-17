@@ -1,0 +1,21 @@
+name: Boba Mainnet
+chain_id: 288
+public_rpc: https://mainnet.boba.network
+sequencer_rpc: https://mainnet.boba.network
+explorer: https://bobascan.com
+
+batch_inbox_addr: "0xfff0000000000000000000000000000000000288"
+
+genesis:
+  l1:
+    hash: "0x945d6244d259e63892abf93e5e6dd3388b79e25ae5ec0502e290a0d0163aa5cf"
+    number: 19670718
+  l2:
+    hash: "0x0a555516317be2719d9befcbcca5f5516b6b7ce0f05b759f5a166b697a8a0fbd"
+    number: 1149019
+  l2_time: 1713302879
+
+canyon_time: 1713302879 # Tue Apr 16 2024 21:27:59 UTC 2024
+regolith_time: 1713302879 # Tue Apr 16 2024 21:27:59 UTC 2024
+delta_time: 1713302879 # Tue Apr 16 2024 21:27:59 UTC 2024
+ecotone_time: 1713302880 # Tue Apr 16 2024 21:28:00 UTC 2024

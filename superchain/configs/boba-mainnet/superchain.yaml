@@ -1,0 +1,10 @@
+name: Mainnet
+l1:
+  chain_id: 1
+  public_rpc: https://ethereum-mainnet-rpc.allthatnode.com
+  explorer: https://etherscan.io
+
+canyon_time: 1713302879 # Tue Apr 16 2024 21:27:59 UTC 2024
+regolith_time: 1713302879 # Tue Apr 16 2024 21:27:59 UTC 2024
+delta_time: 1713302879 # Tue Apr 16 2024 21:27:59 UTC 2024
+ecotone_time: 1713302880 # Tue Apr 16 2024 21:28:00 UTC 2024
