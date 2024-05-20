@@ -20,11 +20,16 @@ contract CheckSecurityConfigs is Script {
         address L1CrossDomainMessengerProxy;
         address L1ERC721BridgeProxy;
         address L1StandardBridgeProxy;
-        address L2OutputOracleProxy;
         address OptimismMintableERC20FactoryProxy;
         address OptimismPortalProxy;
         address ProxyAdmin;
         address SystemConfigProxy;
+        // Legacy pre-fault proof protocol contracts
+        address L2OutputOracleProxy;
+        // Fault Proof protocol contracts
+        address DisputeGameFactoryProxy;
+        address AnchorStateRegistryProxy;
+        address DelayedWETHProxy;
         // Privileged roles
         address Challenger;
         address Guardian;
@@ -48,9 +53,7 @@ contract CheckSecurityConfigs is Script {
         } else {
             revert(
                 string.concat(
-                    "Unsupported chain ID: ",
-                    vm.toString(block.chainid),
-                    ". Please call runOnDir(string,bool) directly."
+                    "Unsupported chain ID: ", vm.toString(block.chainid), ". Please call runOnDir(string) directly."
                 )
             );
         }
@@ -70,17 +73,47 @@ contract CheckSecurityConfigs is Script {
 
     function runOnSingleFile(string memory addressesJsonPath, bool isMainnet) internal {
         console2.log("Checking %s", addressesJsonPath);
-        ProtocolAddresses memory addresses = getAddresses(addressesJsonPath);
+
+        (ProtocolAddresses memory addresses, bool upgradedToFPAC) = getAddressesAndFpacStatus(addressesJsonPath);
         checkAddressManager(addresses);
         checkL1CrossDomainMessengerProxy(addresses);
         checkL1ERC721BridgeProxy(addresses);
         checkL1StandardBridgeProxy(addresses);
-        checkL2OutputOracleProxy(addresses, isMainnet);
         checkOptimismMintableERC20FactoryProxy(addresses);
-        checkOptimismPortalProxy(addresses);
+        checkOptimismPortalProxy(addresses, upgradedToFPAC);
         checkProxyAdmin(addresses);
         checkSystemConfigProxy(addresses);
+        if (upgradedToFPAC) {
+            checkDisputeGameFactoryProxy(addresses);
+            checkAnchorStateRegistryProxy(addresses);
+            checkDelayedWETHProxy(addresses);
+        } else {
+            checkL2OutputOracleProxy(addresses, isMainnet, upgradedToFPAC);
+        }
         // TODO Check the integrity of the implementations: https://github.com/ethereum-optimism/superchain-registry/issues/33
+    }
+
+    function chainUpgradedToFPAC(ProtocolAddresses memory addresses) internal view returns (bool) {
+        ISemver portalProxy = ISemver(addresses.OptimismPortalProxy);
+        string memory version = portalProxy.version();
+        string memory majorVersion = sliceString(version, 0, 1);
+
+        // Portal version `3` is the first version of the `OptimismPortal` that supported the fault proof system.
+        return vm.parseUint(majorVersion) >= 3;
+    }
+
+    // Function to slice a string and return the result
+    function sliceString(string memory str, uint256 begin, uint256 end) public pure returns (string memory) {
+        require(begin < end, "Begin index must be less than end index");
+        bytes memory strBytes = bytes(str);
+        require(end <= strBytes.length, "End index out of bounds");
+
+        bytes memory result = new bytes(end - begin);
+        for (uint256 i = begin; i < end; i++) {
+            result[i - begin] = strBytes[i];
+        }
+
+        return string(result);
     }
 
     function checkAddressManager(ProtocolAddresses memory addresses) internal {
@@ -111,7 +144,14 @@ contract CheckSecurityConfigs is Script {
         checkAddressIsExpected(addresses.L1CrossDomainMessengerProxy, addresses.L1StandardBridgeProxy, "messenger()");
     }
 
-    function checkL2OutputOracleProxy(ProtocolAddresses memory addresses, bool isMainnet) internal {
+    function checkL2OutputOracleProxy(ProtocolAddresses memory addresses, bool isMainnet, bool upgradedToFPAC)
+        internal
+    {
+        if (upgradedToFPAC) {
+            // This check is skipped for chains which upgraded to FPAC
+            console2.log("Skipping L2OutputOracleProxy check for FPAC enabled chain");
+            return;
+        }
         console2.log("Checking L2OutputOracleProxy %s", addresses.L2OutputOracleProxy);
         isAdminOf(addresses.ProxyAdmin, addresses.L2OutputOracleProxy);
         checkAddressIsExpected(addresses.Challenger, addresses.L2OutputOracleProxy, "CHALLENGER()");
@@ -127,18 +167,47 @@ contract CheckSecurityConfigs is Script {
         checkAddressIsExpected(addresses.L1StandardBridgeProxy, addresses.OptimismMintableERC20FactoryProxy, "BRIDGE()");
     }
 
-    function checkOptimismPortalProxy(ProtocolAddresses memory addresses) internal {
+    function checkOptimismPortalProxy(ProtocolAddresses memory addresses, bool upgradedToFPAC) internal {
+        // Legacy immutable `SCREAMING_SNAKE_CASE` function signatures were deprecated in FPAC.
+        string[] memory fnSigs = new string[](2);
+        if (upgradedToFPAC) {
+            fnSigs[0] = "guardian()";
+            fnSigs[1] = "systemConfig()";
+        } else {
+            fnSigs[0] = "GUARDIAN()";
+            fnSigs[1] = "SYSTEM_CONFIG()";
+        }
+
         console2.log("Checking OptimismPortalProxy %s", addresses.OptimismPortalProxy);
         isAdminOf(addresses.ProxyAdmin, addresses.OptimismPortalProxy);
-        checkAddressIsExpected(addresses.Guardian, addresses.OptimismPortalProxy, "GUARDIAN()");
-        checkAddressIsExpected(addresses.L2OutputOracleProxy, addresses.OptimismPortalProxy, "L2_ORACLE()");
-        checkAddressIsExpected(addresses.SystemConfigProxy, addresses.OptimismPortalProxy, "SYSTEM_CONFIG()");
+        checkAddressIsExpected(addresses.Guardian, addresses.OptimismPortalProxy, fnSigs[0]);
+        if (!upgradedToFPAC) {
+            checkAddressIsExpected(addresses.L2OutputOracleProxy, addresses.OptimismPortalProxy, "L2_ORACLE()");
+        }
+        checkAddressIsExpected(addresses.SystemConfigProxy, addresses.OptimismPortalProxy, fnSigs[1]);
     }
 
     function checkSystemConfigProxy(ProtocolAddresses memory addresses) internal {
         console2.log("Checking SystemConfigProxy %s", addresses.SystemConfigProxy);
         isAdminOf(addresses.ProxyAdmin, addresses.SystemConfigProxy);
         isOwnerOf(addresses.SystemConfigOwner, addresses.SystemConfigProxy);
+    }
+
+    function checkDisputeGameFactoryProxy(ProtocolAddresses memory addresses) internal {
+        console2.log("Checking DisputeGameFactoryProxy %s", addresses.DisputeGameFactoryProxy);
+        isAdminOf(addresses.ProxyAdmin, addresses.DisputeGameFactoryProxy);
+        isOwnerOf(addresses.ProxyAdminOwner, addresses.DisputeGameFactoryProxy);
+    }
+
+    function checkAnchorStateRegistryProxy(ProtocolAddresses memory addresses) internal {
+        console2.log("Checking AnchorStateRegistryProxy %s", addresses.AnchorStateRegistryProxy);
+        isAdminOf(addresses.ProxyAdmin, addresses.AnchorStateRegistryProxy);
+    }
+
+    function checkDelayedWETHProxy(ProtocolAddresses memory addresses) internal {
+        console2.log("Checking DelayedWETHProxy %s", addresses.DelayedWETHProxy);
+        isAdminOf(addresses.ProxyAdmin, addresses.DelayedWETHProxy);
+        isOwnerOf(addresses.ProxyAdminOwner, addresses.DelayedWETHProxy);
     }
 
     function checkProxyAdmin(ProtocolAddresses memory addresses) internal {
@@ -182,14 +251,17 @@ contract CheckSecurityConfigs is Script {
         return abi.decode(addrBytes, (address));
     }
 
-    function getAddresses(string memory addressesJsonPath) internal view returns (ProtocolAddresses memory) {
+    function getAddressesAndFpacStatus(string memory addressesJsonPath)
+        internal
+        view
+        returns (ProtocolAddresses memory, bool)
+    {
         string memory addressesJson = vm.readFile(addressesJsonPath);
-        return ProtocolAddresses({
+        ProtocolAddresses memory addresses = ProtocolAddresses({
             AddressManager: vm.parseJsonAddress(addressesJson, ".AddressManager"),
             L1CrossDomainMessengerProxy: vm.parseJsonAddress(addressesJson, ".L1CrossDomainMessengerProxy"),
             L1ERC721BridgeProxy: vm.parseJsonAddress(addressesJson, ".L1ERC721BridgeProxy"),
             L1StandardBridgeProxy: vm.parseJsonAddress(addressesJson, ".L1StandardBridgeProxy"),
-            L2OutputOracleProxy: vm.parseJsonAddress(addressesJson, ".L2OutputOracleProxy"),
             OptimismMintableERC20FactoryProxy: vm.parseJsonAddress(addressesJson, ".OptimismMintableERC20FactoryProxy"),
             OptimismPortalProxy: vm.parseJsonAddress(addressesJson, ".OptimismPortalProxy"),
             ProxyAdmin: vm.parseJsonAddress(addressesJson, ".ProxyAdmin"),
@@ -197,7 +269,27 @@ contract CheckSecurityConfigs is Script {
             Challenger: vm.parseJsonAddress(addressesJson, ".Challenger"),
             Guardian: vm.parseJsonAddress(addressesJson, ".Guardian"),
             ProxyAdminOwner: vm.parseJsonAddress(addressesJson, ".ProxyAdminOwner"),
-            SystemConfigOwner: vm.parseJsonAddress(addressesJson, ".SystemConfigOwner")
+            SystemConfigOwner: vm.parseJsonAddress(addressesJson, ".SystemConfigOwner"),
+            // Unset initially; dependent on whether the chain supports FPAC.
+            L2OutputOracleProxy: address(0),
+            DisputeGameFactoryProxy: address(0),
+            AnchorStateRegistryProxy: address(0),
+            DelayedWETHProxy: address(0)
         });
+
+        bool upgradedToFPAC = chainUpgradedToFPAC(addresses);
+        if (upgradedToFPAC) {
+            addresses.DisputeGameFactoryProxy = vm.parseJsonAddress(addressesJson, ".DisputeGameFactoryProxy");
+            addresses.AnchorStateRegistryProxy = vm.parseJsonAddress(addressesJson, ".AnchorStateRegistryProxy");
+            addresses.DelayedWETHProxy = vm.parseJsonAddress(addressesJson, ".DelayedWETHProxy");
+        } else {
+            addresses.L2OutputOracleProxy = vm.parseJsonAddress(addressesJson, ".L2OutputOracleProxy");
+        }
+
+        return (addresses, upgradedToFPAC);
     }
+}
+
+interface ISemver {
+    function version() external view returns (string memory version);
 }

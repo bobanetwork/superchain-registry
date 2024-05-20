@@ -3,6 +3,7 @@ package superchain
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 
@@ -63,6 +64,8 @@ func init() {
 
 			(&chainConfig).setNilHardforkTimestampsToDefault(&superchainEntry.Config)
 
+			MustBeValidSuperchainLevel(chainConfig)
+
 			jsonName := chainConfig.Chain + ".json"
 			addressesData, err := extraFS.ReadFile(path.Join("extra", "addresses", s.Name(), jsonName))
 			if err != nil {
@@ -93,6 +96,23 @@ func init() {
 			OPChains[chainConfig.ChainID] = &chainConfig
 			Addresses[chainConfig.ChainID] = &addrs
 			GenesisSystemConfigs[chainConfig.ChainID] = &genesisSysCfg
+
+		}
+
+		ciMainnetRPC := os.Getenv("CIRCLE_CI_MAINNET_RPC")
+		ciSepoliaRPC := os.Getenv("CIRCLE_CI_SEPOLIA_RPC")
+
+		switch superchainEntry.Superchain {
+		case "mainnet":
+			if ciMainnetRPC != "" {
+				fmt.Println("Using env var for mainnet rpc")
+				superchainEntry.Config.L1.PublicRPC = ciMainnetRPC
+			}
+		case "sepolia", "sepolia-dev-0":
+			if ciSepoliaRPC != "" {
+				fmt.Println("Using env var for sepolia rpc")
+				superchainEntry.Config.L1.PublicRPC = ciSepoliaRPC
+			}
 		}
 
 		Superchains[superchainEntry.Superchain] = &superchainEntry
@@ -102,6 +122,12 @@ func init() {
 			panic(fmt.Errorf("failed to read implementations of superchain target %s: %w", s.Name(), err))
 		}
 
-		Implementations[superchainEntry.Config.L1.ChainID] = implementations
+		Implementations[s.Name()] = implementations
+	}
+}
+
+func MustBeValidSuperchainLevel(chainConfig ChainConfig) {
+	if chainConfig.SuperchainLevel != Frontier && chainConfig.SuperchainLevel != Standard {
+		panic(fmt.Sprintf("invalid or unspecified superchain level %d", chainConfig.SuperchainLevel))
 	}
 }
