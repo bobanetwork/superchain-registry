@@ -6,6 +6,8 @@ sequencer_rpc: https://sepolia.boba.network
 system_config_addr: "0xfdc9bce032cef55a71b4fde9b9a2198ad1551965"
 batch_inbox_addr: "0xfff0000000000000000000000000000000028882"
 
+superchain_level: 2
+
 genesis:
   l1:
     hash: "0x632d8caedbfd573e09c1b49134bd5147147e0904e0f04eba15c662be0258f517"

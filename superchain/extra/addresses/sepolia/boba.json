@@ -6,5 +6,6 @@
   "L2OutputOracleProxy": "0xdBdb238185f9BB40f742aE249f9a083381EC39eC",
   "OptimismMintableERC20FactoryProxy": "0xE6ebece6936528804BB4c43AdcA10c2623919852",
   "OptimismPortalProxy": "0xB079E6FA9B3eb072fEbf7F746044834eab308dB6",
+  "SystemConfigProxy": "0xfDC9bCE032cEF55a71b4fde9B9a2198ad1551965",
   "ProxyAdmin": "0x66930dd34EA64bD4B9F32464e363511b49966C5D"
 }
