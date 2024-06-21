@@ -17,3 +17,8 @@ genesis:
     hash: 0x293763444b022de43fba94e90b95936ea0c360c02443379427c2f7b7fb21fe7e
     number: 675077
   l2_time: 1718920167 # Thu 20 Jun 2024 21:49:27 UTC
+
+canyon_time: 1718920167 # Thu Jan 18 2024 17:59:48 UTC 2024
+regolith_time: 1718920167 # Thu Jan 18 2024 17:59:48 UTC 2024
+delta_time: 1718920167 # Wed Feb 28 2024 00:00:00 UTC 2024
+ecotone_time: 1718920168 # Wed Feb 28 2024 00:00:00 UTC 2024
