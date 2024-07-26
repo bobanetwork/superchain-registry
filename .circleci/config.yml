@@ -2,7 +2,9 @@ version: 2.1
 
 orbs:
   go: circleci/go@1.8.0
+  node: circleci/node@5.2.0
   slack: circleci/slack@4.10.1
+  rust: circleci/rust@1.6.1
 
 commands:
   notify-failures-on-main:
@@ -17,6 +19,30 @@ commands:
           event: fail
           template: basic_fail_1
           branch_pattern: main
+  install-just:
+    description: "Install just"
+    steps:
+      - run:
+          name: "Install just"
+          command: |
+            wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | sudo tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null
+            echo "deb [arch=all,$(dpkg --print-architecture) signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr $(lsb_release -cs)" | sudo tee /etc/apt/sources.list.d/prebuilt-mpr.list
+            sudo apt update
+            sudo apt install just
+  install-nextest:
+    description: "Installs cargo nextest"
+    steps:
+      - run:
+          name: "Install nextest"
+          command: cargo install cargo-nextest --locked
+  install-rust-toolchain:
+    description: "Installs rust toolchain components"
+    steps:
+      - run:
+          name: "Install toolchain"
+          command: |
+            rustup install nightly-x86_64-unknown-linux-gnu
+
 jobs:
   golang-lint:
     executor:
@@ -24,25 +50,16 @@ jobs:
       tag: '1.21'
     steps:
       - checkout
-      - run:  golangci-lint run superchain/... validation/... add-chain/...
+      - install-just
+      - run: just lint-all
   golang-modules-tidy:
     executor:
       name: go/default  # is based on cimg/go
       tag: '1.21'
     steps:
       - checkout
-      - run:
-          name: tidy superchain module
-          command: go mod tidy
-          working_directory: superchain
-      - run:
-          name: tidy validation module
-          command: go mod tidy
-          working_directory: validation
-      - run:
-          name: tidy add-chain module
-          command: go mod tidy
-          working_directory: add-chain
+      - install-just
+      - run: just tidy-all
       - run:
           name: check git tree is clean
           command: git diff --exit-code
@@ -53,6 +70,10 @@ jobs:
       tag: '1.21'
     steps:
       - checkout
+      - install-just
+      - run:
+          name: Install gotestsum
+          command: go install gotest.tools/gotestsum@latest
       - run:
           # need foundry to execute 'cast call' within add-chain script
           name: Install foundry
@@ -71,16 +92,13 @@ jobs:
             forge --version
       - run:
           name: run superchain module tests
-          command: go test ./... -v
-          working_directory: superchain
+          command: just test-superchain
       - run:
           name: run validation module tests
-          command: go test ./... -v
-          working_directory: validation
+          command: just test-validation
       - run:
           name: run add-chain module tests
-          command: go test ./... -v
-          working_directory: add-chain
+          command: just test-add-chain
       - notify-failures-on-main
   publish-bot:
     environment:
@@ -98,43 +116,55 @@ jobs:
           name: Build and publish package on NPM 📦
           command: pnpm release
   check-codegen:
-    docker:
-      - image: cimg/node:18.18.2
+    executor:
+      name: go/default  # is based on cimg/go
+      tag: '1.21'
     steps:
       - checkout
+      - install-just
       - run:
           name: Run codegen
-          command: pnpm codegen
+          command: just codegen
       - run:
-          name: Check for changes
+          name: check git tree is clean
           command: git diff --exit-code
-  check-forge-fmt:
+  cargo-tests:
     docker:
-      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.40.0
+      - image: cimg/rust:1.79
     steps:
       - checkout
+      - install-just
+      - install-nextest
       - run:
-          name: check compliance with forge fmt
-          command: |
-            forge fmt --check
-  check-security-configs:
-    circleci_ip_ranges: true
+          name: Cargo Tests
+          command: just cargo-tests
+      - notify-failures-on-main
+  cargo-lint:
     docker:
-      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.40.0
+      - image: cimg/rust:1.79
     steps:
       - checkout
+      - install-just
+      - install-rust-toolchain
       - run:
-          name: check security configs
-          command: sh ./scripts/check-security-configs.sh
+          name: Cargo lints
+          command: just cargo-lint
+      - notify-failures-on-main
+  cargo-build:
+    docker:
+      - image: cimg/rust:1.79
+    steps:
+      - checkout
+      - install-just
+      - run:
+          name: Cargo build
+          command: just cargo-build
       - notify-failures-on-main
 
 workflows:
   hourly:
     jobs:
       - golang-test:
-          context:
-            - slack
-      - check-security-configs:
           context:
             - slack
     triggers:
@@ -150,7 +180,6 @@ workflows:
       - golang-modules-tidy
       - golang-test
       - check-codegen
-      - check-forge-fmt
-      - check-security-configs
-
-
+      - cargo-tests
+      - cargo-lint
+      - cargo-build

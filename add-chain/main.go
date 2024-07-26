@@ -4,47 +4,49 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
 
-	"github.com/spf13/viper"
+	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/superchain-registry/add-chain/cmd"
+	"github.com/ethereum-optimism/superchain-registry/add-chain/config"
+	"github.com/ethereum-optimism/superchain-registry/add-chain/flags"
+	"github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v2"
 )
 
-var (
-	ChainTypeFlag = &cli.StringFlag{
-		Name:     "chain-type",
-		Value:    "",
-		Usage:    "Type of chain (either standard or frontier)",
-		Required: true,
-	}
-	ChainNameFlag = &cli.StringFlag{
-		Name:     "chain-name",
-		Value:    "",
-		Usage:    "Custom name of the chain",
-		Required: false,
-	}
-	RollupConfigFlag = &cli.StringFlag{
-		Name:     "rollup-config",
-		Value:    "",
-		Usage:    "Filepath to rollup.json input file",
-		Required: false,
-	}
-	TestFlag = &cli.BoolFlag{
-		Name:     "test",
-		Value:    false,
-		Usage:    "Indicates if go tests are being run",
-		Required: false,
-	}
-)
+var app = &cli.App{
+	Name:  "add-chain",
+	Usage: "Add a new chain to the superchain-registry",
+	Flags: []cli.Flag{
+		flags.PublicRpcFlag,
+		flags.SequencerRpcFlag,
+		flags.ExplorerFlag,
+		flags.SuperchainTargetFlag,
+		flags.MonorepoDirFlag,
+		flags.ChainNameFlag,
+		flags.ChainShortNameFlag,
+		flags.RollupConfigFlag,
+		flags.DeploymentsDirFlag,
+		flags.StandardChainCandidateFlag,
+	},
+	Action: entrypoint,
+	Commands: []*cli.Command{
+		&cmd.PromoteToStandardCmd,
+		&cmd.CheckRollupConfigCmd,
+		&cmd.CompressGenesisCmd,
+		&cmd.CheckGenesisCmd,
+		&cmd.UpdateConfigsCmd,
+	},
+}
 
 func main() {
-	app := &cli.App{
-		Name:   "add-chain",
-		Usage:  "Add a new chain to the superchain-registry",
-		Flags:  []cli.Flag{ChainTypeFlag, ChainNameFlag, RollupConfigFlag, TestFlag},
-		Action: entrypoint,
-	}
-
-	if err := app.Run(os.Args); err != nil {
+	if err := runApp(os.Args); err != nil {
 		fmt.Println(err)
 		fmt.Println("*********************")
 		fmt.Printf("FAILED: %s\n", app.Name)
@@ -54,56 +56,56 @@ func main() {
 	fmt.Printf("SUCCESS: %s\n", app.Name)
 }
 
+func runApp(args []string) error {
+	// Load the appropriate .env file
+	var err error
+	if runningTests := os.Getenv("SCR_RUN_TESTS"); runningTests == "true" {
+		fmt.Println("Loading .env.test")
+		err = godotenv.Load("./testdata/.env.test")
+	} else {
+		fmt.Println("Loading .env")
+		err = godotenv.Load()
+	}
+
+	if err != nil {
+		panic("error loading .env file")
+	}
+
+	return app.Run(args)
+}
+
 func entrypoint(ctx *cli.Context) error {
-	chainType := ctx.String(ChainTypeFlag.Name)
-	runningTests := ctx.Bool(TestFlag.Name)
+	standardChainCandidate := ctx.Bool(flags.StandardChainCandidateFlag.Name)
 
-	superchainLevel, err := getSuperchainLevel(chainType)
-	if err != nil {
-		return fmt.Errorf("failed to get superchain level: %w", err)
-	}
+	superchainLevel := superchain.Frontier // All chains enter as frontier chains
 
-	// Get the current script's directory
-	superchainRepoPath, err := os.Getwd()
-	envFilename := ".env"
-	envPath := "."
-	if err != nil {
-		return fmt.Errorf("error getting current directory: %w", err)
-	}
-	if runningTests {
-		envFilename = ".env.test"
-		envPath = "./testdata"
-		superchainRepoPath = filepath.Join(superchainRepoPath, "testdata")
+	publicRPC := ctx.String(flags.PublicRpcFlag.Name)
+	sequencerRPC := ctx.String(flags.SequencerRpcFlag.Name)
+	explorer := ctx.String(flags.ExplorerFlag.Name)
+	superchainTarget := ctx.String(flags.SuperchainTargetFlag.Name)
+	monorepoDir := ctx.String(flags.MonorepoDirFlag.Name)
+
+	chainName := ctx.String(flags.ChainNameFlag.Name)
+	rollupConfigPath := ctx.String(flags.RollupConfigFlag.Name)
+	deploymentsDir := ctx.String(flags.DeploymentsDirFlag.Name)
+	chainShortName := ctx.String(flags.ChainShortNameFlag.Name)
+	if chainShortName == "" {
+		return fmt.Errorf("must set chain-short-name (SCR_CHAIN_SHORT_NAME)")
 	}
 
-	// Load environment variables
-	viper.SetConfigName(envFilename) // name of config file (without extension)
-	viper.SetConfigType("env")       // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath(envPath)     // path to look for the config file in
-	if err := viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("error reading config file: %w", err)
+	// Get the current script filepath
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("error getting current filepath")
 	}
-
-	publicRPC := viper.GetString("PUBLIC_RPC")
-	sequencerRPC := viper.GetString("SEQUENCER_RPC")
-	explorer := viper.GetString("EXPLORER")
-	superchainTarget := viper.GetString("SUPERCHAIN_TARGET")
-	deploymentsDir := viper.GetString("DEPLOYMENTS_DIR")
-	chainName := viper.GetString("CHAIN_NAME")
-
-	// Allow cli flags to override env vars
-	if ctx.IsSet("chain-name") {
-		chainName = ctx.String("chain-name")
-	}
-	rollupConfigPath := viper.GetString("ROLLUP_CONFIG")
-	if ctx.IsSet("rollup-config") {
-		rollupConfigPath = ctx.String("rollup-config")
-	}
+	superchainRepoRoot := filepath.Dir(filepath.Dir(thisFile))
 
 	fmt.Printf("Chain Name:                     %s\n", chainName)
+	fmt.Printf("Chain Short Name:               %s\n", chainShortName)
 	fmt.Printf("Superchain target:              %s\n", superchainTarget)
-	fmt.Printf("Superchain-registry repo dir:   %s\n", superchainRepoPath)
-	fmt.Printf("With deployments directory:     %s\n", deploymentsDir)
+	fmt.Printf("Superchain-registry repo dir:   %s\n", superchainRepoRoot)
+	fmt.Printf("Monorepo dir:                   %s\n", monorepoDir)
+	fmt.Printf("Deployments directory:          %s\n", deploymentsDir)
 	fmt.Printf("Rollup config filepath:         %s\n", rollupConfigPath)
 	fmt.Printf("Public RPC endpoint:            %s\n", publicRPC)
 	fmt.Printf("Sequencer RPC endpoint:         %s\n", sequencerRPC)
@@ -111,46 +113,115 @@ func entrypoint(ctx *cli.Context) error {
 	fmt.Println()
 
 	// Check if superchain target directory exists
-	targetDir := filepath.Join(superchainRepoPath, "superchain", "configs", superchainTarget)
+	targetDir := filepath.Join(superchainRepoRoot, "superchain", "configs", superchainTarget)
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
-		return fmt.Errorf("superchain target directory not found. Please follow instructions to add a superchain target in CONTRIBUTING.md")
+		return fmt.Errorf("superchain target directory not found. Please follow instructions to add a superchain target in CONTRIBUTING.md: %s", targetDir)
 	}
 
-	rollupConfig, err := constructChainConfig(rollupConfigPath, chainName, publicRPC, sequencerRPC, explorer, superchainLevel)
-	if err != nil {
-		return fmt.Errorf("failed to construct rollup config: %w", err)
-	}
-	contractAddresses := make(map[string]string)
-	if rollupConfig.Plasma != nil {
-		// Store this address before it gets removed from rollupConfig
-		contractAddresses["DAChallengeAddress"] = rollupConfig.Plasma.DAChallengeAddress.String()
-	}
-
-	targetFilePath := filepath.Join(targetDir, chainName+".yaml")
-	err = writeChainConfig(rollupConfig, targetFilePath, superchainRepoPath, superchainTarget)
-	if err != nil {
-		return fmt.Errorf("error generating chain config .yaml file: %w", err)
-	}
-
-	err = readAddressesFromJSON(contractAddresses, deploymentsDir)
-	if err != nil {
-		return fmt.Errorf("failed to read addresses from JSON files: %w", err)
-	}
-
-	l1RpcUrl, err := getL1RpcUrl(superchainTarget)
+	l1RpcUrl, err := config.GetL1RpcUrl(superchainTarget)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve L1 rpc url: %w", err)
 	}
 
-	err = readAddressesFromChain(contractAddresses, l1RpcUrl)
+	addresses := make(map[string]string)
+	err = readAddressesFromJSON(addresses, deploymentsDir)
+	if err != nil {
+		return fmt.Errorf("failed to read addresses from JSON files: %w", err)
+	}
+
+	isFaultProofs, err := inferIsFaultProofs(addresses["OptimismPortalProxy"], l1RpcUrl)
+	if err != nil {
+		return fmt.Errorf("failed to infer fault proofs status of chain: %w", err)
+	}
+
+	rollupConfig, err := config.ConstructChainConfig(rollupConfigPath, chainName, publicRPC, sequencerRPC, explorer, superchainLevel, standardChainCandidate)
+	if err != nil {
+		return fmt.Errorf("failed to construct rollup config: %w", err)
+	}
+
+	err = readAddressesFromChain(addresses, l1RpcUrl, isFaultProofs)
 	if err != nil {
 		return fmt.Errorf("failed to read addresses from chain: %w", err)
 	}
 
-	err = writeAddressesToJSON(contractAddresses, superchainRepoPath, superchainTarget, chainName)
-	if err != nil {
-		return fmt.Errorf("failed to write contract addresses to JSON file: %w", err)
+	if rollupConfig.Plasma != nil {
+		addresses["DAChallengeAddress"] = rollupConfig.Plasma.DAChallengeAddress.String()
 	}
 
+	addressList := superchain.AddressList{}
+	err = mapToAddressList(addresses, &addressList)
+	if err != nil {
+		return fmt.Errorf("error converting map to AddressList: %w", err)
+	}
+	rollupConfig.Addresses = addressList
+
+	l1RpcUrl, err = config.GetL1RpcUrl(superchainTarget)
+	if err != nil {
+		return fmt.Errorf("error getting l1RpcUrl: %w", err)
+	}
+	gpt, err := getGasPayingToken(l1RpcUrl, addressList.SystemConfigProxy)
+	if err != nil {
+		return fmt.Errorf("error inferring gas paying token: %w", err)
+	}
+	rollupConfig.GasPayingToken = gpt
+
+	targetFilePath := filepath.Join(targetDir, chainShortName+".toml")
+	err = config.WriteChainConfigTOML(rollupConfig, targetFilePath)
+	if err != nil {
+		return fmt.Errorf("error generating chain config .yaml file: %w", err)
+	}
+
+	fmt.Printf("Wrote config for new chain with identifier %s", rollupConfig.Identifier())
 	return nil
+}
+
+func inferIsFaultProofs(optimismPortalProxyAddress, l1RpcUrl string) (bool, error) {
+	// Portal version `3` is the first version of the `OptimismPortal` that supported the fault proof system.
+	version, err := castCall(optimismPortalProxyAddress, "version()(string)", l1RpcUrl)
+	if err != nil {
+		return false, fmt.Errorf("failed to get OptimismPortalProxy.version(): %w", err)
+	}
+
+	version, err = strconv.Unquote(version)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse OptimismPortalProxy.version(): %w", err)
+	}
+	majorVersion, err := strconv.ParseInt(strings.Split(version, ".")[0], 10, 32)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse OptimismPortalProxy.version(): %w", err)
+	}
+	return majorVersion >= 3, nil
+}
+
+func getGasPayingToken(l1rpcURl string, SystemConfigAddress superchain.Address) (*superchain.Address, error) {
+	client, err := ethclient.Dial(l1rpcURl)
+	if err != nil {
+		return nil, err
+	}
+	sc, err := bindings.NewSystemConfig(common.Address(SystemConfigAddress), client)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := bind.CallOpts{}
+	result, err := sc.GasPayingToken(&opts)
+
+	if strings.Contains(err.Error(), "execution reverted") {
+		// This happens when the SystemConfig contract
+		// does not yet have the CGT functionality.
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if (result.Addr == common.Address{}) {
+		// This happens with the SystemConfig contract
+		// does have the CGT functionality, but it has
+		// not been enabled.
+		return nil, nil
+	}
+
+	return (*superchain.Address)(&result.Addr), nil
 }

@@ -7,8 +7,7 @@ The Superchain Registry repository contains:
   - a [`validation`](#validation-go-module) module
   - an [`add-chain`](#add-chain-go-module) module
   - The modules are tracked by a top level `go.work` file. The associated `go.work.sum` file is gitignored and not important to typical workflows, which should mirror those of the [CI configuration](.circleci/config.yml).
-* a Forge/Solidity script [`CheckSecurityConfigs`](#checksecurityconfigs)
-* Automatically generated summary `chainIds.json` file
+* Automatically generated summary `chainList.json` and `chainList.toml` files.
 
 
 ## Superchain-wide config data
@@ -46,37 +45,8 @@ EOF
 ```
 Superchain-wide configuration, like the `ProtocolVersions` contract address, should be configured here when available.
 
-### Approved contract versions
-Each superchain target should have a `semver.yaml` file in the same directory declaring the approved contract semantic versions for that superchain, e.g:
-```yaml
-l1_cross_domain_messenger: 1.4.0
-l1_erc721_bridge: 1.0.0
-l1_standard_bridge: 1.1.0
-l2_output_oracle: 1.3.0
-optimism_mintable_erc20_factory: 1.1.0
-optimism_portal: 1.6.0
-system_config: 1.3.0
 
-# superchain-wide contracts
-protocol_versions: 1.0.0
-superchain_config: 1.1.0
-```
-It is meant to be used when building transactions that upgrade the implementations set in the proxies. See the `semver.yaml` files in existing superchain targets for the latest set of contracts to specify.
 
-### `implementations`
-Per superchain a set of canonical implementation deployments, per semver version, is tracked.
-As default, an empty collection of deployments can be set:
-```bash
-cat > superchain/implementations/networks/$SUPERCHAIN_TARGET.yaml << EOF
-l1_cross_domain_messenger:
-l1_erc721_bridge:
-l1_standard_bridge:
-l2_output_oracle:
-optimism_mintable_erc20_factory:
-optimism_portal:
-system_config:
-EOF
-```
 
 ## `superchain` Go Module
 
@@ -96,7 +66,7 @@ This module contains the CLI tool for generating `superchain` compliant configs 
 
 ## CheckSecurityConfigs
 
-The `CheckSecurityConfigs.s.sol` script is used in CI to perform
+The `security-configs_test.go` test is used in CI to perform
 security checks of OP Chains registered in the `superchain`
 directory. At high level, it performs checks to ensure privileges are
 properly granted to the right addresses. More specifically, it checks
@@ -123,7 +93,7 @@ the following privilege grants and role designations:
       L2 senders.
    4. Trusted oracles. For example, `OptimismPortalProxy` specifies
       the L2 oracle they trust with the L2 state root information.
-      1. After the FPAC upgrade, the `OptimismPortalProxy` specifies the `DisputeGameFactory` they trust rather
+      1. After the Fault Proofs upgrade, the `OptimismPortalProxy` specifies the `DisputeGameFactory` they trust rather
       than the legacy `L2OutputOracle` contract.
    5. Trusted system config. For example, `OptimismPortalProxy`
       specifies the system config they trust to get resource config
@@ -132,15 +102,14 @@ the following privilege grants and role designations:
 3. Optimism privileged operational roles:
    1. Guardians. This is the role that can pause withdraws in the
       Optimism protocol.
-      1. After the FPAC upgrade, the `Guardian` can also blacklist dispute games and change the respected game type
+      1. After the Fault Proofs upgrade, the `Guardian` can also blacklist dispute games and change the respected game type
          in the `OptimismPortal`.
    2. Challengers. This is the role that can delete `L2OutputOracleProxy`'s output roots in the Optimism protocol
-      1. After the FPAC upgrade, the `CHALLENGER` is a permissionless role in the `FaultDisputeGame`. However,
+      1. After the Fault Proofs upgrade, the `CHALLENGER` is a permissionless role in the `FaultDisputeGame`. However,
          in the `PermissionedDisputeGame`, the `CHALLENGER` role is the only party allowed to dispute output proposals
          created by the `PROPOSER` role.
 
-As a result, here is a visualization of all the relationships the
-`CheckSecurityConfigs.s.sol` script checks:
+As a result, here is a visualization of all the relationships the script checks:
 
 ``` mermaid
 graph TD

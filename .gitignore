@@ -2,6 +2,10 @@
 cache/
 out/
 
+
+# test output artifacts
+superchain/**/testchain*
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
@@ -24,6 +28,7 @@ docs/
 !.env.test
 *.log
 
+*/**/target
 
 # Go workspaces checksum file
 go.work.sum
