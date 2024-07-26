@@ -64,6 +64,10 @@ func ConstructChainConfig(
 		DataAvailabilityType: jsonConfig.DataAvailabilityType,
 	}
 
+	if jsonConfig.RegolithTime != nil {
+		chainConfig.RegolithTime = jsonConfig.RegolithTime
+	}
+
 	fmt.Printf("Rollup config successfully constructed\n")
 	return chainConfig, nil
 }
