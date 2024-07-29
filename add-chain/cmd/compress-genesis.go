@@ -130,6 +130,7 @@ var CompressGenesisCmd = cli.Command{
 			ExcessBlobGas: genesis.ExcessBlobGas, // EIP-4844
 			BlobGasUsed:   genesis.BlobGasUsed,   // EIP-4844
 			Alloc:         make(jsonutil.LazySortedJsonMap[common.Address, GenesisAccount]),
+			StateHash:     genesis.StateHash,
 		}
 
 		// write genesis, but only reference code by code-hash
