@@ -1,4 +1,17 @@
 [[chains]]
+  name = "Boba BNB Testnet"
+  identifier = "bnb-testnet/boba"
+  chain_id = 9728
+  rpc = ["https://testnet.bnb.boba.network"]
+  explorers = ["https://testnet.bnb.bobascan.com"]
+  superchain_level = 1
+  data_availability_type = "eth-da"
+  gas_paying_token = "0x875cD11fDf085e0E11B0EE6b814b6d0b38fA554C"
+  [chains.parent]
+    type = "L2"
+    chain = "bnb-testnet"
+
+[[chains]]
   name = "OP Mainnet"
   identifier = "mainnet/op"
   chain_id = 10
@@ -16,6 +29,18 @@
   chain_id = 8453
   rpc = ["https://mainnet.base.org"]
   explorers = ["https://explorer.base.org"]
+  superchain_level = 1
+  data_availability_type = "eth-da"
+  [chains.parent]
+    type = "L2"
+    chain = "mainnet"
+
+[[chains]]
+  name = "boba"
+  identifier = "mainnet/boba"
+  chain_id = 288
+  rpc = ["https://mainnet.boba.network"]
+  explorers = ["https://bobascan.com"]
   superchain_level = 1
   data_availability_type = "eth-da"
   [chains.parent]
@@ -125,6 +150,18 @@
   chain_id = 84532
   rpc = ["https://sepolia.base.org"]
   explorers = ["https://sepolia-explorer.base.org"]
+  superchain_level = 1
+  data_availability_type = "eth-da"
+  [chains.parent]
+    type = "L2"
+    chain = "sepolia"
+
+[[chains]]
+  name = "boba"
+  identifier = "sepolia/boba"
+  chain_id = 28882
+  rpc = ["https://sepolia.boba.network"]
+  explorers = ["https://testnet.bobascan.com"]
   superchain_level = 1
   data_availability_type = "eth-da"
   [chains.parent]
