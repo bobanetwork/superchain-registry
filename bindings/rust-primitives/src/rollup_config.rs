@@ -14,6 +14,22 @@ use crate::fee_params::{
 use crate::genesis::ChainGenesis;
 use crate::system_config::SystemConfig;
 
+/// The max rlp bytes per channel for the Bedrock hardfork.
+pub const MAX_RLP_BYTES_PER_CHANNEL_BEDROCK: u64 = 10_000_000;
+
+/// The max rlp bytes per channel for the Fjord hardfork.
+pub const MAX_RLP_BYTES_PER_CHANNEL_FJORD: u64 = 100_000_000;
+
+/// The max sequencer drift when the Fjord hardfork is active.
+pub const FJORD_MAX_SEQUENCER_DRIFT: u64 = 1800;
+
+/// The channel timeout once the Granite hardfork is active.
+pub const GRANITE_CHANNEL_TIMEOUT: u64 = 50;
+
+fn default_granite_channel_timeout() -> u64 {
+    GRANITE_CHANNEL_TIMEOUT
+}
+
 /// Returns the rollup config for the given chain ID.
 pub fn rollup_config_from_chain_id(chain_id: u64) -> Result<RollupConfig> {
     chain_id.try_into()
@@ -32,9 +48,6 @@ impl TryFrom<u64> for RollupConfig {
         }
     }
 }
-
-/// The max sequencer drift when the Fjord hardfork is active.
-pub const FJORD_MAX_SEQUENCER_DRIFT: u64 = 1800;
 
 /// The Rollup configuration.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -56,6 +69,9 @@ pub struct RollupConfig {
     pub seq_window_size: u64,
     /// Number of L1 blocks between when a channel can be opened and when it can be closed.
     pub channel_timeout: u64,
+    /// The channel timeout after the Granite hardfork.
+    #[cfg_attr(feature = "serde", serde(default = "default_granite_channel_timeout"))]
+    pub granite_channel_timeout: u64,
     /// The L1 chain ID
     pub l1_chain_id: u64,
     /// The L2 chain ID
@@ -92,11 +108,16 @@ pub struct RollupConfig {
     /// otherwise.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub fjord_time: Option<u64>,
-    /// `interop_time` sets the activation time for an experimental feature-set, activated like a
-    /// hardfork. Active if `interop_time` != None && L2 block timestamp >= Some(interop_time),
-    /// inactive otherwise.
+    /// `granite_time` sets the activation time for the Granite network upgrade.
+    /// Active if `granite_time` != None && L2 block timestamp >= Some(granite_time), inactive
+    /// otherwise.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub interop_time: Option<u64>,
+    pub granite_time: Option<u64>,
+    /// `holocene_time` sets the activation time for the Holocene network upgrade.
+    /// Active if `holocene_time` != None && L2 block timestamp >= Some(holocene_time), inactive
+    /// otherwise.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub holocene_time: Option<u64>,
     /// `batch_inbox_address` is the L1 address that batches are sent to.
     pub batch_inbox_address: Address,
     /// `deposit_contract_address` is the L1 address that deposits are sent to.
@@ -130,6 +151,7 @@ impl Default for RollupConfig {
             max_sequencer_drift: 0,
             seq_window_size: 0,
             channel_timeout: 0,
+            granite_channel_timeout: GRANITE_CHANNEL_TIMEOUT,
             l1_chain_id: 0,
             l2_chain_id: 0,
             base_fee_params: OP_BASE_FEE_PARAMS,
@@ -139,7 +161,8 @@ impl Default for RollupConfig {
             delta_time: None,
             ecotone_time: None,
             fjord_time: None,
-            interop_time: None,
+            granite_time: None,
+            holocene_time: None,
             batch_inbox_address: Address::ZERO,
             deposit_contract_address: Address::ZERO,
             l1_system_config_address: Address::ZERO,
@@ -153,7 +176,6 @@ impl Default for RollupConfig {
 
 /// Loads the rollup config for the OP-Stack chain given the chain config and address list.
 pub fn load_op_stack_rollup_config(chain_config: &ChainConfig) -> RollupConfig {
-    const PGN_SEPOLIA: u64 = 58008;
     RollupConfig {
         genesis: chain_config.genesis.clone(),
         l1_chain_id: chain_config.l1_chain_id,
@@ -165,7 +187,8 @@ pub fn load_op_stack_rollup_config(chain_config: &ChainConfig) -> RollupConfig {
         delta_time: chain_config.hardfork_configuration.delta_time,
         ecotone_time: chain_config.hardfork_configuration.ecotone_time,
         fjord_time: chain_config.hardfork_configuration.fjord_time,
-        interop_time: chain_config.hardfork_configuration.interop_time,
+        granite_time: chain_config.hardfork_configuration.granite_time,
+        holocene_time: chain_config.hardfork_configuration.holocene_time,
         batch_inbox_address: chain_config.batch_inbox_addr,
         deposit_contract_address: chain_config
             .addresses
@@ -195,16 +218,9 @@ pub fn load_op_stack_rollup_config(chain_config: &ChainConfig) -> RollupConfig {
         // Test/Alt configurations can still load custom rollup-configs when necessary.
         block_time: 2,
         channel_timeout: 300,
-        max_sequencer_drift: if chain_config.chain_id == PGN_SEPOLIA {
-            1000
-        } else {
-            600
-        },
-        seq_window_size: if chain_config.chain_id == PGN_SEPOLIA {
-            7200
-        } else {
-            3600
-        },
+        granite_channel_timeout: GRANITE_CHANNEL_TIMEOUT,
+        max_sequencer_drift: 600,
+        seq_window_size: 3600,
     }
 }
 
@@ -234,9 +250,14 @@ impl RollupConfig {
         self.fjord_time.map_or(false, |t| timestamp >= t)
     }
 
-    /// Returns true if Interop is active at the given timestamp.
-    pub fn is_interop_active(&self, timestamp: u64) -> bool {
-        self.interop_time.map_or(false, |t| timestamp >= t)
+    /// Returns true if Granite is active at the given timestamp.
+    pub fn is_granite_active(&self, timestamp: u64) -> bool {
+        self.granite_time.map_or(false, |t| timestamp >= t)
+    }
+
+    /// Returns true if Holocene is active at the given timestamp.
+    pub fn is_holocene_active(&self, timestamp: u64) -> bool {
+        self.holocene_time.map_or(false, |t| timestamp >= t)
     }
 
     /// Returns true if a DA Challenge proxy Address is provided in the rollup config and the
@@ -252,6 +273,24 @@ impl RollupConfig {
             FJORD_MAX_SEQUENCER_DRIFT
         } else {
             self.max_sequencer_drift
+        }
+    }
+
+    /// Returns the max rlp bytes per channel for the given timestamp.
+    pub fn max_rlp_bytes_per_channel(&self, timestamp: u64) -> u64 {
+        if self.is_fjord_active(timestamp) {
+            MAX_RLP_BYTES_PER_CHANNEL_FJORD
+        } else {
+            MAX_RLP_BYTES_PER_CHANNEL_BEDROCK
+        }
+    }
+
+    /// Returns the channel timeout for the given timestamp.
+    pub fn channel_timeout(&self, timestamp: u64) -> u64 {
+        if self.is_granite_active(timestamp) {
+            self.granite_channel_timeout
+        } else {
+            self.channel_timeout
         }
     }
 
@@ -316,6 +355,7 @@ pub const OP_MAINNET_CONFIG: RollupConfig = RollupConfig {
     max_sequencer_drift: 600_u64,
     seq_window_size: 3600_u64,
     channel_timeout: 300_u64,
+    granite_channel_timeout: 50,
     l1_chain_id: 1_u64,
     l2_chain_id: 10_u64,
     base_fee_params: OP_BASE_FEE_PARAMS,
@@ -325,7 +365,8 @@ pub const OP_MAINNET_CONFIG: RollupConfig = RollupConfig {
     delta_time: Some(1_708_560_000_u64),
     ecotone_time: Some(1_710_374_401_u64),
     fjord_time: Some(1_720_627_201_u64),
-    interop_time: None,
+    granite_time: None,
+    holocene_time: None,
     batch_inbox_address: address!("ff00000000000000000000000000000000000010"),
     deposit_contract_address: address!("beb5fc579115071764c7423a4f12edde41f106ed"),
     l1_system_config_address: address!("229047fed2591dbec1ef1118d64f7af3db9eb290"),
@@ -361,6 +402,7 @@ pub const OP_SEPOLIA_CONFIG: RollupConfig = RollupConfig {
     max_sequencer_drift: 600,
     seq_window_size: 3600,
     channel_timeout: 300,
+    granite_channel_timeout: 50,
     l1_chain_id: 11155111,
     l2_chain_id: 11155420,
     base_fee_params: OP_SEPOLIA_BASE_FEE_PARAMS,
@@ -370,7 +412,8 @@ pub const OP_SEPOLIA_CONFIG: RollupConfig = RollupConfig {
     delta_time: Some(1703203200),
     ecotone_time: Some(1708534800),
     fjord_time: Some(1716998400),
-    interop_time: None,
+    granite_time: Some(1723478400),
+    holocene_time: None,
     batch_inbox_address: address!("ff00000000000000000000000000000011155420"),
     deposit_contract_address: address!("16fc5058f25648194471939df75cf27a2fdc48bc"),
     l1_system_config_address: address!("034edd2a225f7f429a63e0f1d2084b9e0a93b538"),
@@ -402,20 +445,22 @@ pub const BASE_MAINNET_CONFIG: RollupConfig = RollupConfig {
         }),
         extra_data: None,
     },
-    block_time: 2_u64,
-    max_sequencer_drift: 600_u64,
-    seq_window_size: 3600_u64,
-    channel_timeout: 300_u64,
-    l1_chain_id: 1_u64,
-    l2_chain_id: 8453_u64,
+    block_time: 2,
+    max_sequencer_drift: 600,
+    seq_window_size: 3600,
+    channel_timeout: 300,
+    granite_channel_timeout: 50,
+    l1_chain_id: 1,
+    l2_chain_id: 8453,
     base_fee_params: OP_BASE_FEE_PARAMS,
     canyon_base_fee_params: Some(OP_CANYON_BASE_FEE_PARAMS),
     regolith_time: Some(0_u64),
-    canyon_time: Some(1_704_992_401_u64),
-    delta_time: Some(1_708_560_000_u64),
-    ecotone_time: Some(1_710_374_401_u64),
-    fjord_time: Some(1_720_627_201_u64),
-    interop_time: None,
+    canyon_time: Some(1704992401),
+    delta_time: Some(1708560000),
+    ecotone_time: Some(1710374401),
+    fjord_time: Some(1720627201),
+    granite_time: None,
+    holocene_time: None,
     batch_inbox_address: address!("ff00000000000000000000000000000000008453"),
     deposit_contract_address: address!("49048044d57e1c92a77f79988d21fa8faf74e97e"),
     l1_system_config_address: address!("73a79fab69143498ed3712e519a88a918e1f4072"),
@@ -451,6 +496,7 @@ pub const BASE_SEPOLIA_CONFIG: RollupConfig = RollupConfig {
     max_sequencer_drift: 600,
     seq_window_size: 3600,
     channel_timeout: 300,
+    granite_channel_timeout: 50,
     l1_chain_id: 11155111,
     l2_chain_id: 84532,
     base_fee_params: BASE_SEPOLIA_BASE_FEE_PARAMS,
@@ -460,7 +506,8 @@ pub const BASE_SEPOLIA_CONFIG: RollupConfig = RollupConfig {
     delta_time: Some(1703203200),
     ecotone_time: Some(1708534800),
     fjord_time: Some(1716998400),
-    interop_time: None,
+    granite_time: Some(1723478400),
+    holocene_time: None,
     batch_inbox_address: address!("ff00000000000000000000000000000000084532"),
     deposit_contract_address: address!("49f53e41452c74589e85ca1677426ba426459e85"),
     l1_system_config_address: address!("f272670eb55e895584501d564afeb048bed26194"),
@@ -520,12 +567,21 @@ mod tests {
     }
 
     #[test]
-    fn test_interop_active() {
+    fn test_granite_active() {
         let mut config = RollupConfig::default();
-        assert!(!config.is_interop_active(0));
-        config.interop_time = Some(10);
-        assert!(config.is_interop_active(10));
-        assert!(!config.is_interop_active(9));
+        assert!(!config.is_granite_active(0));
+        config.granite_time = Some(10);
+        assert!(config.is_granite_active(10));
+        assert!(!config.is_granite_active(9));
+    }
+
+    #[test]
+    fn test_holocene_active() {
+        let mut config = RollupConfig::default();
+        assert!(!config.is_holocene_active(0));
+        config.holocene_time = Some(10);
+        assert!(config.is_holocene_active(10));
+        assert!(!config.is_holocene_active(9));
     }
 
     #[test]
@@ -536,6 +592,19 @@ mod tests {
         assert!(!config.is_plasma_enabled());
         config.da_challenge_address = Some(address!("0000000000000000000000000000000000000001"));
         assert!(config.is_plasma_enabled());
+    }
+
+    #[test]
+    fn test_granite_channel_timeout() {
+        let mut config = RollupConfig {
+            channel_timeout: 100,
+            granite_time: Some(10),
+            ..Default::default()
+        };
+        assert_eq!(config.channel_timeout(0), 100);
+        assert_eq!(config.channel_timeout(10), GRANITE_CHANNEL_TIMEOUT);
+        config.granite_time = None;
+        assert_eq!(config.channel_timeout(10), 100);
     }
 
     #[test]

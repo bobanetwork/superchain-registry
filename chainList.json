@@ -137,23 +137,6 @@
     }
   },
   {
-    "name": "PGN (Public Goods Network)",
-    "identifier": "mainnet/pgn",
-    "chainId": 424,
-    "rpc": [
-      "https://rpc.publicgoods.network"
-    ],
-    "explorers": [
-      "https://explorer.publicgoods.network"
-    ],
-    "superchainLevel": 1,
-    "dataAvailabilityType": "eth-da",
-    "parent": {
-      "type": "L2",
-      "chain": "mainnet"
-    }
-  },
-  {
     "name": "RACE Mainnet",
     "identifier": "mainnet/race",
     "chainId": 6805,
@@ -171,21 +154,22 @@
     }
   },
   {
-    "name": "SuperLumio",
-    "identifier": "mainnet/superlumio",
-    "chainId": 8866,
+    "name": "Binary Mainnet",
+    "identifier": "mainnet/tbn",
+    "chainId": 624,
     "rpc": [
-      "https://mainnet.lumio.io"
+      "https://rpc.zero.thebinaryholdings.com"
     ],
     "explorers": [
-      "https://explorer.lumio.io"
+      "https://explorer.thebinaryholdings.com/"
     ],
     "superchainLevel": 1,
     "dataAvailabilityType": "eth-da",
     "parent": {
       "type": "L2",
       "chain": "mainnet"
-    }
+    },
+    "gasPayingToken": "0x04E9D7e336f79Cdab911b06133D3Ca2Cd0721ce3"
   },
   {
     "name": "Zora",
@@ -281,23 +265,6 @@
     ],
     "explorers": [
       "https://sepolia.explorer.mode.network"
-    ],
-    "superchainLevel": 1,
-    "dataAvailabilityType": "eth-da",
-    "parent": {
-      "type": "L2",
-      "chain": "sepolia"
-    }
-  },
-  {
-    "name": "Sepolia PGN (Public Goods Network)",
-    "identifier": "sepolia/pgn",
-    "chainId": 58008,
-    "rpc": [
-      "https://sepolia.publicgoods.network"
-    ],
-    "explorers": [
-      "https://explorer.sepolia.publicgoods.network"
     ],
     "superchainLevel": 1,
     "dataAvailabilityType": "eth-da",

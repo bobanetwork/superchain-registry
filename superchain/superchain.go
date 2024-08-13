@@ -55,6 +55,7 @@ type HardForkConfiguration struct {
 	EcotoneTime  *uint64 `json:"ecotone_time,omitempty" toml:"ecotone_time,omitempty"`
 	FjordTime    *uint64 `json:"fjord_time,omitempty" toml:"fjord_time,omitempty"`
 	GraniteTime  *uint64 `json:"granite_time,omitempty" toml:"granite_time,omitempty"`
+	HoloceneTime *uint64 `json:"holocene_time,omitempty" toml:"holocene_time,omitempty"`
 }
 
 type SuperchainLevel uint
@@ -102,6 +103,7 @@ type ChainConfig struct {
 
 	BlockTime            uint64           `toml:"block_time" json:"block_time"`
 	SequencerWindowSize  uint64           `toml:"seq_window_size" json:"seq_window_size"`
+	MaxSequencerDrift    uint64           `toml:"max_sequencer_drift" json:"max_sequencer_drift"`
 	DataAvailabilityType DataAvailability `toml:"data_availability_type"`
 
 	// Optional feature
@@ -251,6 +253,8 @@ func (c *ChainConfig) GenerateTOMLComments(ctx context.Context) (map[string]stri
 	createTimestampComment("delta_time", c.DeltaTime, comments)
 	createTimestampComment("ecotone_time", c.EcotoneTime, comments)
 	createTimestampComment("fjord_time", c.FjordTime, comments)
+	createTimestampComment("granite_time", c.GraniteTime, comments)
+	createTimestampComment("holocene_time", c.HoloceneTime, comments)
 
 	if c.StandardChainCandidate {
 		comments["standard_chain_candidate"] = "# This is a temporary field which causes most of the standard validation checks to run on this chain"

@@ -13,6 +13,7 @@ ecotone_time = 1708534800 # Wed 21 Feb 2024 17:00:00 UTC
 fjord_time = 1716998400 # Wed 29 May 2024 16:00:00 UTC
 block_time = 2
 seq_window_size = 3600
+max_sequencer_drift = 600
 data_availability_type = "eth-da"
 
 [genesis]
@@ -31,7 +32,7 @@ data_availability_type = "eth-da"
 
 [addresses]
   SystemConfigOwner = "0x23BA22Dd7923F3a3f2495bB32a6f3c9b9CD1EC6C"
-  ProxyAdminOwner = "0xE75Cd021F520B160BF6b54D472Fa15e52aFe5aDD"
+  ProxyAdminOwner = "0x1Eb2fFc903729a0F03966B917003800b145F56E2"
   Guardian = "0x7a50f00e8D05b95F98fE38d8BeE366a7324dCf7E"
   Challenger = "0x45eFFbD799Ab49122eeEAB75B78D9C56A187F9A7"
   Proposer = "0xe8326a5839175dE7f467e66D8bB443aa70DA1c3e"
