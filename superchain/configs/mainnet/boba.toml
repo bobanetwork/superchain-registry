@@ -1,4 +1,4 @@
-name = "boba"
+name = "Boba Mainnet"
 chain_id = 288
 public_rpc = "https://mainnet.boba.network"
 sequencer_rpc = "https://mainnet.boba.network"

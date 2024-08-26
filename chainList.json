@@ -52,7 +52,7 @@
     }
   },
   {
-    "name": "boba",
+    "name": "Boba Mainnet",
     "identifier": "mainnet/boba",
     "chainId": 288,
     "rpc": [
@@ -223,7 +223,7 @@
     }
   },
   {
-    "name": "boba",
+    "name": "Boba Sepolia Testnet",
     "identifier": "sepolia/boba",
     "chainId": 28882,
     "rpc": [
@@ -323,6 +323,24 @@
       "type": "L2",
       "chain": "sepolia-dev-0"
     }
+  },
+  {
+    "name": "Boba Devnet",
+    "identifier": "sepolia-dev-0/boba",
+    "chainId": 288882,
+    "rpc": [
+      "https://devnet.boba.network"
+    ],
+    "explorers": [
+      ""
+    ],
+    "superchainLevel": 1,
+    "dataAvailabilityType": "eth-da",
+    "parent": {
+      "type": "L2",
+      "chain": "sepolia-dev-0"
+    },
+    "gasPayingToken": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
   },
   {
     "name": "OP Labs Sepolia devnet 0",

@@ -1,4 +1,4 @@
-name = "boba"
+name = "Boba Sepolia Testnet"
 chain_id = 28882
 public_rpc = "https://sepolia.boba.network"
 sequencer_rpc = "https://sepolia.boba.network"

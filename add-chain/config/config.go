@@ -49,10 +49,6 @@ func ConstructChainConfig(
 	chainConfig.StandardChainCandidate = standardChainCandidate
 	chainConfig.SuperchainTime = nil
 
-	if jsonConfig.RegolithTime != nil {
-		chainConfig.RegolithTime = jsonConfig.RegolithTime
-	}
-
 	fmt.Printf("Rollup config successfully constructed\n")
 	return chainConfig, nil
 }
