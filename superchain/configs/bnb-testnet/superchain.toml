@@ -6,7 +6,7 @@ canyon_time =  1718920167
 delta_time =   1718920167
 ecotone_time = 1718920168
 fjord_time =   1722297600
-
+granite_time = 1726470000
 [l1]
   chain_id = 97
   public_rpc = "https://bsc-testnet.public.blastapi.io"
