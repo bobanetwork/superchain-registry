@@ -13,6 +13,7 @@ fjord_time = 1722297600 # Tue 30 Jul 2024 00:00:00 UTC
 granite_time = 1726470000 # Mon 16 Sep 2024 07:00:00 UTC
 block_time = 2
 seq_window_size = 3600
+max_sequencer_drift = 600
 data_availability_type = "eth-da"
 
 [genesis]
