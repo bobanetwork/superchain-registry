@@ -6,5 +6,4 @@ use (
 	./validation
 )
 
-replace github.com/ethereum/go-ethereum => github.com/bobanetwork/op-geth v0.0.0-20240813211939-cc4e57d5b846
-
+replace github.com/ethereum/go-ethereum => github.com/bobanetwork/op-geth v0.0.0-20240916200000-bdcf1bcf3edc
