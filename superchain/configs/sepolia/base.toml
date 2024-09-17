@@ -3,7 +3,7 @@ chain_id = 84532
 public_rpc = "https://sepolia.base.org"
 sequencer_rpc = "https://sepolia-sequencer.base.org"
 explorer = "https://sepolia-explorer.base.org"
-superchain_level = 1
+superchain_level = 0
 standard_chain_candidate = true # This is a temporary field which causes most of the standard validation checks to run on this chain
 superchain_time = 0 # Missing hardfork times are inherited from superchain.toml
 batch_inbox_addr = "0xfF00000000000000000000000000000000084532"
@@ -15,6 +15,11 @@ block_time = 2
 seq_window_size = 3600
 max_sequencer_drift = 600
 data_availability_type = "eth-da"
+
+[optimism]
+  eip1559_elasticity = 10
+  eip1559_denominator = 50
+  eip1559_denominator_canyon = 250
 
 [genesis]
   l2_time = 1695768288
@@ -35,9 +40,9 @@ data_availability_type = "eth-da"
   ProxyAdminOwner = "0x0fe884546476dDd290eC46318785046ef68a0BA9"
   Guardian = "0x7a50f00e8D05b95F98fE38d8BeE366a7324dCf7E"
   Challenger = "0xDa3037Ff70Ac92CD867c683BD807e5A484857405"
-  Proposer = "0x20044a0d104E9e788A0C984A2B7eAe615afD046b"
+  Proposer = "0x037637067c1DbE6d2430616d8f54Cb774Daa5999"
   UnsafeBlockSigner = "0xb830b99c95Ea32300039624Cb567d324D4b1D83C"
-  BatchSubmitter = "0x6CDEbe940BC0F26850285cacA097C11c33103E47"
+  BatchSubmitter = "0xfc56E7272EEBBBA5bC6c544e159483C4a38f8bA3"
   AddressManager = "0x709c2B8ef4A9feFc629A8a2C1AF424Dc5BD6ad1B"
   L1CrossDomainMessengerProxy = "0xC34855F4De64F1840e5686e64278da901e261f20"
   L1ERC721BridgeProxy = "0x21eFD066e581FA55Ef105170Cc04d74386a09190"
@@ -51,5 +56,5 @@ data_availability_type = "eth-da"
   DisputeGameFactoryProxy = "0xd6E6dBf4F7EA0ac412fD8b65ED297e64BB7a06E1"
   FaultDisputeGame = "0x8A9bA50a785c3868bEf1FD4924b640A5e0ed54CF"
   MIPS = "0xFF760A87E41144b336E29b6D4582427dEBdB6dee"
-  PermissionedDisputeGame = "0x3f5c770f17A6982d2B3Ac77F6fDC93BFE0330E17"
+  PermissionedDisputeGame = "0x593D20C4c69485B95D11507239BE2C725ea2A6fD"
   PreimageOracle = "0x627F825CBd48c4102d36f287be71f4234426b9e4"

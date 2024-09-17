@@ -27,16 +27,22 @@ var superchainFS embed.FS
 var extraFS embed.FS
 
 type BlockID struct {
-	Hash   Hash   `toml:"hash"`
-	Number uint64 `toml:"number"`
+	Hash   Hash   `json:"hash" toml:"hash"`
+	Number uint64 `json:"number" toml:"number"`
+}
+
+type OptimismConfig struct {
+	EIP1559Elasticity        uint64  `toml:"eip1559_elasticity" json:"eip1559Elasticity"`
+	EIP1559Denominator       uint64  `toml:"eip1559_denominator" json:"eip1559Denominator"`
+	EIP1559DenominatorCanyon *uint64 `toml:"eip1559_denominator_canyon,omitempty" json:"eip1559DenominatorCanyon,omitempty"`
 }
 
 type ChainGenesis struct {
-	L1           BlockID      `toml:"l1"`
-	L2           BlockID      `toml:"l2"`
-	L2Time       uint64       `toml:"l2_time" json:"l2_time"`
-	ExtraData    *HexBytes    `toml:"extra_data,omitempty"`
-	SystemConfig SystemConfig `toml:"system_config" json:"system_config" `
+	L1           BlockID      `json:"l1" toml:"l1"`
+	L2           BlockID      `json:"l2" toml:"l2"`
+	L2Time       uint64       `json:"l2_time" toml:"l2_time"`
+	ExtraData    *HexBytes    `json:"extra_data,omitempty" toml:"extra_data,omitempty"`
+	SystemConfig SystemConfig `json:"system_config" toml:"system_config"`
 }
 
 type SystemConfig struct {
@@ -61,8 +67,8 @@ type HardForkConfiguration struct {
 type SuperchainLevel uint
 
 const (
-	Standard SuperchainLevel = 2
-	Frontier SuperchainLevel = 1
+	Standard SuperchainLevel = 1
+	Frontier SuperchainLevel = 0
 )
 
 type DataAvailability string
@@ -105,13 +111,10 @@ type ChainConfig struct {
 	SequencerWindowSize  uint64           `toml:"seq_window_size" json:"seq_window_size"`
 	MaxSequencerDrift    uint64           `toml:"max_sequencer_drift" json:"max_sequencer_drift"`
 	DataAvailabilityType DataAvailability `toml:"data_availability_type"`
+	Optimism             *OptimismConfig  `toml:"optimism,omitempty" json:"optimism,omitempty"`
 
 	// Optional feature
-	LegacyUsePlasma          bool          `toml:"-,omitempty" json:"use_plasma,omitempty"`
-	LegacyDAChallengeAddress *Address      `toml:"-,omitempty" json:"da_challenge_contract_address,omitempty"`
-	LegacyDAChallengeWindow  *uint64       `toml:"-,omitempty" json:"da_challenge_window,omitempty"`
-	LegacyDAResolveWindow    *uint64       `toml:"-,omitempty" json:"da_resolve_window,omitempty"`
-	Plasma                   *PlasmaConfig `toml:"plasma,omitempty" json:"plasma_config,omitempty"`
+	AltDA *AltDAConfig `toml:"alt_da,omitempty" json:"alt_da,omitempty"`
 
 	GasPayingToken *Address `toml:"gas_paying_token,omitempty"` // Just metadata, not consumed by downstream OPStack software
 
@@ -124,38 +127,46 @@ func (c ChainConfig) Identifier() string {
 	return c.Superchain + "/" + c.Chain
 }
 
-type PlasmaConfig struct {
+// Returns a shallow copy of the chain config with some fields mutated
+// to declare the chain a standard chain. No fields on the receiver
+// are mutated.
+func (c *ChainConfig) PromoteToStandard() (*ChainConfig, error) {
+	if !c.StandardChainCandidate {
+		return nil, errors.New("can only promote standard candidate chains")
+	}
+	if c.SuperchainLevel != Frontier {
+		return nil, errors.New("can only promote frontier chains")
+	}
+
+	// Note that any pointers in c are copied to d
+	// This is not problematic as long as we do
+	// not modify the values pointed to.
+	d := *c
+
+	d.StandardChainCandidate = false
+	d.SuperchainLevel = Standard
+	now := uint64(time.Now().Unix())
+	d.SuperchainTime = &now
+	return &d, nil
+}
+
+type AltDAConfig struct {
 	DAChallengeAddress *Address `json:"da_challenge_contract_address" toml:"da_challenge_contract_address"`
-	// DA challenge window value set on the DAC contract. Used in plasma mode
+	// DA challenge window value set on the DAC contract. Used in altDA mode
 	// to compute when a commitment can no longer be challenged.
 	DAChallengeWindow *uint64 `json:"da_challenge_window" toml:"da_challenge_window"`
-	// DA resolve window value set on the DAC contract. Used in plasma mode
+	// DA resolve window value set on the DAC contract. Used in altDA mode
 	// to compute when a challenge expires and trigger a reorg if needed.
-	DAResolveWindow *uint64 `json:"da_resolve_window" toml:"da_resolve_window"`
+	DAResolveWindow  *uint64 `json:"da_resolve_window" toml:"da_resolve_window"`
+	DACommitmentType *string `json:"da_commitment_type" toml:"da_commitment_type"`
 }
 
 func (c *ChainConfig) CheckDataAvailability() error {
 	c.DataAvailabilityType = EthDA
-
-	if c.LegacyUsePlasma {
-		// Check for legacy plasma config first
-		if c.LegacyDAChallengeAddress == nil {
-			return fmt.Errorf("missing required plasma field: da_challenge_contract_address")
-		}
-		plasmaConfig := PlasmaConfig{
-			DAChallengeAddress: c.LegacyDAChallengeAddress,
-			DAChallengeWindow:  c.LegacyDAChallengeWindow,
-			DAResolveWindow:    c.LegacyDAResolveWindow,
-		}
-		c.Plasma = &plasmaConfig
+	if c.AltDA != nil {
 		c.DataAvailabilityType = AltDA
-		return nil
-	}
-
-	if c.Plasma != nil {
-		c.DataAvailabilityType = AltDA
-		if c.Plasma.DAChallengeAddress == nil {
-			return fmt.Errorf("missing required plasma field: da_challenge_contract_address")
+		if c.AltDA.DAChallengeAddress == nil {
+			return fmt.Errorf("missing required altDA field: da_challenge_contract_address")
 		}
 	}
 
@@ -296,7 +307,7 @@ type AddressList struct {
 	PermissionedDisputeGame  Address `json:"PermissionedDisputeGame,omitempty" toml:"PermissionedDisputeGame,omitempty"`
 	PreimageOracle           Address `json:"PreimageOracle,omitempty" toml:"PreimageOracle,omitempty"`
 
-	// Plasma contracts:
+	// AltDA contracts:
 	DAChallengeAddress Address `json:"DAChallengeAddress,omitempty" toml:"DAChallengeAddress,omitempty"`
 }
 
@@ -364,16 +375,10 @@ func (a AddressList) AddressFor(name string) (Address, error) {
 // contract. They are keyed by the semantic version.
 type AddressSet map[string]Address
 
-// VersionedContract represents a contract that has a semantic version.
-type VersionedContract struct {
-	Version string  `json:"version" toml:"version"`
-	Address Address `json:"address" toml:"address"`
-}
-
 // ContractVersions represents the desired semantic version of the contracts
 // in the superchain. This currently only supports L1 contracts but could
 // represent L2 predeploys in the future.
-type ContractVersions struct {
+type ContractBytecodeHashes struct {
 	L1CrossDomainMessenger       string `toml:"l1_cross_domain_messenger"`
 	L1ERC721Bridge               string `toml:"l1_erc721_bridge"`
 	L1StandardBridge             string `toml:"l1_standard_bridge"`
@@ -394,43 +399,82 @@ type ContractVersions struct {
 	PreimageOracle          string `toml:"preimage_oracle,omitempty"`
 }
 
+// VersionedContract represents a contract that has a semantic version.
+type VersionedContract struct {
+	Version string `toml:"version"`
+	// If the contract is a superchain singleton, it will have a static address
+	Address *Address `toml:"implementation_address,omitempty"`
+	// If the contract is proxied, the implementation will have a static address
+	ImplementationAddress *Address `toml:"address,omitempty"`
+}
+
+// ContractVersions represents the desired semantic version of the contracts
+// in the superchain. This currently only supports L1 contracts but could
+// represent L2 predeploys in the future.
+type ContractVersions struct {
+	L1CrossDomainMessenger       VersionedContract `toml:"l1_cross_domain_messenger,omitempty"`
+	L1ERC721Bridge               VersionedContract `toml:"l1_erc721_bridge,omitempty"`
+	L1StandardBridge             VersionedContract `toml:"l1_standard_bridge,omitempty"`
+	L2OutputOracle               VersionedContract `toml:"l2_output_oracle,omitempty"`
+	OptimismMintableERC20Factory VersionedContract `toml:"optimism_mintable_erc20_factory,omitempty"`
+	OptimismPortal               VersionedContract `toml:"optimism_portal,omitempty"`
+	OptimismPortal2              VersionedContract `toml:"optimism_portal2,omitempty"`
+	SystemConfig                 VersionedContract `toml:"system_config,omitempty"`
+	// Superchain-wide contracts:
+	ProtocolVersions VersionedContract `toml:"protocol_versions,omitempty"`
+	SuperchainConfig VersionedContract `toml:"superchain_config,omitempty"`
+	// Fault Proof contracts:
+	AnchorStateRegistry     VersionedContract `toml:"anchor_state_registry,omitempty"`
+	DelayedWETH             VersionedContract `toml:"delayed_weth,omitempty"`
+	DisputeGameFactory      VersionedContract `toml:"dispute_game_factory,omitempty"`
+	FaultDisputeGame        VersionedContract `toml:"fault_dispute_game,omitempty"`
+	MIPS                    VersionedContract `toml:"mips,omitempty"`
+	PermissionedDisputeGame VersionedContract `toml:"permissioned_dispute_game,omitempty"`
+	PreimageOracle          VersionedContract `toml:"preimage_oracle,omitempty"`
+	CannonFaultDisputeGame  VersionedContract `toml:"cannon_fault_dispute_game,omitempty"`
+}
+
 // VersionFor returns the version for the supplied contract name, if it exits
 // (and an error otherwise). Useful for slicing into the struct using a string.
 func (c ContractVersions) VersionFor(contractName string) (string, error) {
 	var version string
 	switch contractName {
 	case "L1CrossDomainMessenger":
-		version = c.L1CrossDomainMessenger
+		version = c.L1CrossDomainMessenger.Version
 	case "L1ERC721Bridge":
-		version = c.L1ERC721Bridge
+		version = c.L1ERC721Bridge.Version
 	case "L1StandardBridge":
-		version = c.L1StandardBridge
+		version = c.L1StandardBridge.Version
 	case "L2OutputOracle":
-		version = c.L2OutputOracle
+		version = c.L2OutputOracle.Version
 	case "OptimismMintableERC20Factory":
-		version = c.OptimismMintableERC20Factory
+		version = c.OptimismMintableERC20Factory.Version
 	case "OptimismPortal":
-		version = c.OptimismPortal
+		version = c.OptimismPortal.Version
+	case "OptimismPortal2":
+		version = c.OptimismPortal2.Version
 	case "SystemConfig":
-		version = c.SystemConfig
+		version = c.SystemConfig.Version
 	case "AnchorStateRegistry":
-		version = c.AnchorStateRegistry
+		version = c.AnchorStateRegistry.Version
 	case "DelayedWETH":
-		version = c.DelayedWETH
+		version = c.DelayedWETH.Version
 	case "DisputeGameFactory":
-		version = c.DisputeGameFactory
+		version = c.DisputeGameFactory.Version
 	case "FaultDisputeGame":
-		version = c.FaultDisputeGame
+		version = c.FaultDisputeGame.Version
 	case "MIPS":
-		version = c.MIPS
+		version = c.MIPS.Version
 	case "PermissionedDisputeGame":
-		version = c.PermissionedDisputeGame
+		version = c.PermissionedDisputeGame.Version
 	case "PreimageOracle":
-		version = c.PreimageOracle
+		version = c.PreimageOracle.Version
 	case "ProtocolVersions":
-		version = c.ProtocolVersions
+		version = c.ProtocolVersions.Version
 	case "SuperchainConfig":
-		version = c.SuperchainConfig
+		version = c.SuperchainConfig.Version
+	case "CannonFaultDisputeGame":
+		version = c.CannonFaultDisputeGame.Version
 	default:
 		return "", errors.New("no such contract name")
 	}
@@ -446,28 +490,28 @@ func (c ContractVersions) Check(allowEmptyVersions bool) error {
 	val := reflect.ValueOf(c)
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
-		str, ok := field.Interface().(string)
+		vC, ok := field.Interface().(VersionedContract)
 		if !ok {
 			return fmt.Errorf("invalid type for field %s", val.Type().Field(i).Name)
 		}
-		if str == "" {
+		if vC.Version == "" {
 			if allowEmptyVersions {
 				continue // we allow empty strings and rely on tests to assert (or except) a nonempty version
 			}
 			return fmt.Errorf("empty version for field %s", val.Type().Field(i).Name)
 		}
-		str = canonicalizeSemver(str)
-		if !semver.IsValid(str) {
-			return fmt.Errorf("invalid semver %s for field %s", str, val.Type().Field(i).Name)
+		vC.Version = CanonicalizeSemver(vC.Version)
+		if !semver.IsValid(vC.Version) {
+			return fmt.Errorf("invalid semver %s for field %s", vC.Version, val.Type().Field(i).Name)
 		}
 	}
 	return nil
 }
 
-// canonicalizeSemver will ensure that the version string has a "v" prefix.
+// CanonicalizeSemver will ensure that the version string has a "v" prefix.
 // This is because the semver library being used requires the "v" prefix,
 // even though
-func canonicalizeSemver(version string) string {
+func CanonicalizeSemver(version string) string {
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
 	}
