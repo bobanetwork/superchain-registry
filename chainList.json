@@ -256,6 +256,23 @@
     }
   },
   {
+    "name": "Boba Sepolia",
+    "identifier": "sepolia/boba",
+    "chainId": 28882,
+    "rpc": [
+      "https://sepolia.boba.network"
+    ],
+    "explorers": [
+      "https://testnet.bobascan.com"
+    ],
+    "superchainLevel": 0,
+    "dataAvailabilityType": "eth-da",
+    "parent": {
+      "type": "L2",
+      "chain": "sepolia"
+    }
+  },
+  {
     "name": "Funki Sepolia Sandbox",
     "identifier": "sepolia/funki",
     "chainId": 3397901,
