@@ -62,6 +62,7 @@ type HardForkConfiguration struct {
 	FjordTime    *uint64 `json:"fjord_time,omitempty" toml:"fjord_time,omitempty"`
 	GraniteTime  *uint64 `json:"granite_time,omitempty" toml:"granite_time,omitempty"`
 	HoloceneTime *uint64 `json:"holocene_time,omitempty" toml:"holocene_time,omitempty"`
+	IsthmusTime  *uint64 `json:"isthmus_time,omitempty" toml:"isthmus_time,omitempty"`
 }
 
 type SuperchainLevel uint
@@ -266,6 +267,7 @@ func (c *ChainConfig) GenerateTOMLComments(ctx context.Context) (map[string]stri
 	createTimestampComment("fjord_time", c.FjordTime, comments)
 	createTimestampComment("granite_time", c.GraniteTime, comments)
 	createTimestampComment("holocene_time", c.HoloceneTime, comments)
+	createTimestampComment("isthmus_time", c.IsthmusTime, comments)
 
 	if c.StandardChainCandidate {
 		comments["standard_chain_candidate"] = "# This is a temporary field which causes most of the standard validation checks to run on this chain"
@@ -312,62 +314,28 @@ type AddressList struct {
 }
 
 // AddressFor returns a nonzero address for the supplied name, if it has been specified
-// (and an error otherwise). Useful for slicing into the struct using a string.
+// (and an error otherwise).
 func (a AddressList) AddressFor(name string) (Address, error) {
-	var address Address
-	switch name {
-	case "AddressManager":
-		address = a.AddressManager
-	case "ProxyAdmin":
-		address = a.ProxyAdmin
-	case "L1CrossDomainMessengerProxy":
-		address = a.L1CrossDomainMessengerProxy
-	case "L1ERC721BridgeProxy":
-		address = a.L1ERC721BridgeProxy
-	case "L1StandardBridgeProxy":
-		address = a.L1StandardBridgeProxy
-	case "L2OutputOracleProxy":
-		address = a.L2OutputOracleProxy
-	case "OptimismMintableERC20FactoryProxy":
-		address = a.OptimismMintableERC20FactoryProxy
-	case "OptimismPortalProxy":
-		address = a.OptimismPortalProxy
-	case "SystemConfigProxy":
-		address = a.SystemConfigProxy
-	case "AnchorStateRegistryProxy":
-		address = a.AnchorStateRegistryProxy
-	case "DelayedWETHProxy":
-		address = a.DelayedWETHProxy
-	case "DisputeGameFactoryProxy":
-		address = a.DisputeGameFactoryProxy
-	case "FaultDisputeGame":
-		address = a.FaultDisputeGame
-	case "MIPS":
-		address = a.MIPS
-	case "PermissionedDisputeGame":
-		address = a.PermissionedDisputeGame
-	case "PreimageOracle":
-		address = a.PreimageOracle
-	case "SystemConfigOwner":
-		address = a.SystemConfigOwner
-	case "ProxyAdminOwner":
-		address = a.ProxyAdminOwner
-	case "Guardian":
-		address = a.Guardian
-	case "Challenger":
-		address = a.Challenger
-	case "BatchSubmitter":
-		address = a.BatchSubmitter
-	case "UnsafeBlockSigner":
-		address = a.UnsafeBlockSigner
-	case "Proposer":
-		address = a.Proposer
-	default:
-		return address, fmt.Errorf("no such name %s", name)
+	// Use reflection to get the struct value and type
+	v := reflect.ValueOf(a)
+
+	// Try to find the field by name
+	field := v.FieldByName(name)
+	if !field.IsValid() {
+		return Address{}, fmt.Errorf("no such name %s", name)
 	}
+
+	// Check if the field is of type Address
+	if field.Type() != reflect.TypeOf(Address{}) {
+		return Address{}, fmt.Errorf("field %s is not of type Address", name)
+	}
+
+	// Check if the address is a non-zero value
+	address := field.Interface().(Address)
 	if address == (Address{}) {
-		return address, fmt.Errorf("no address or zero address specified for  %s", name)
+		return Address{}, fmt.Errorf("no address or zero address specified for %s", name)
 	}
+
 	return address, nil
 }
 
@@ -375,29 +343,31 @@ func (a AddressList) AddressFor(name string) (Address, error) {
 // contract. They are keyed by the semantic version.
 type AddressSet map[string]Address
 
-// ContractVersions represents the desired semantic version of the contracts
-// in the superchain. This currently only supports L1 contracts but could
-// represent L2 predeploys in the future.
-type ContractBytecodeHashes struct {
-	L1CrossDomainMessenger       string `toml:"l1_cross_domain_messenger"`
-	L1ERC721Bridge               string `toml:"l1_erc721_bridge"`
-	L1StandardBridge             string `toml:"l1_standard_bridge"`
-	L2OutputOracle               string `toml:"l2_output_oracle,omitempty"`
-	OptimismMintableERC20Factory string `toml:"optimism_mintable_erc20_factory"`
-	OptimismPortal               string `toml:"optimism_portal"`
-	SystemConfig                 string `toml:"system_config"`
+type MappedContractProperties[T string | VersionedContract] struct {
+	L1CrossDomainMessenger       T `toml:"l1_cross_domain_messenger,omitempty"`
+	L1ERC721Bridge               T `toml:"l1_erc721_bridge,omitempty"`
+	L1StandardBridge             T `toml:"l1_standard_bridge,omitempty"`
+	L2OutputOracle               T `toml:"l2_output_oracle,omitempty"`
+	OptimismMintableERC20Factory T `toml:"optimism_mintable_erc20_factory,omitempty"`
+	OptimismPortal               T `toml:"optimism_portal,omitempty"`
+	OptimismPortal2              T `toml:"optimism_portal2,omitempty"`
+	SystemConfig                 T `toml:"system_config,omitempty"`
 	// Superchain-wide contracts:
-	ProtocolVersions string `toml:"protocol_versions"`
-	SuperchainConfig string `toml:"superchain_config,omitempty"`
+	ProtocolVersions T `toml:"protocol_versions,omitempty"`
+	SuperchainConfig T `toml:"superchain_config,omitempty"`
 	// Fault Proof contracts:
-	AnchorStateRegistry     string `toml:"anchor_state_registry,omitempty"`
-	DelayedWETH             string `toml:"delayed_weth,omitempty"`
-	DisputeGameFactory      string `toml:"dispute_game_factory,omitempty"`
-	FaultDisputeGame        string `toml:"fault_dispute_game,omitempty"`
-	MIPS                    string `toml:"mips,omitempty"`
-	PermissionedDisputeGame string `toml:"permissioned_dispute_game,omitempty"`
-	PreimageOracle          string `toml:"preimage_oracle,omitempty"`
+	AnchorStateRegistry     T `toml:"anchor_state_registry,omitempty"`
+	DelayedWETH             T `toml:"delayed_weth,omitempty"`
+	DisputeGameFactory      T `toml:"dispute_game_factory,omitempty"`
+	FaultDisputeGame        T `toml:"fault_dispute_game,omitempty"`
+	MIPS                    T `toml:"mips,omitempty"`
+	PermissionedDisputeGame T `toml:"permissioned_dispute_game,omitempty"`
+	PreimageOracle          T `toml:"preimage_oracle,omitempty"`
+	CannonFaultDisputeGame  T `toml:"cannon_fault_dispute_game,omitempty"`
 }
+
+// ContractBytecodeHashes stores a bytecode hash against each contract
+type ContractBytecodeHashes MappedContractProperties[string]
 
 // VersionedContract represents a contract that has a semantic version.
 type VersionedContract struct {
@@ -411,77 +381,62 @@ type VersionedContract struct {
 // ContractVersions represents the desired semantic version of the contracts
 // in the superchain. This currently only supports L1 contracts but could
 // represent L2 predeploys in the future.
-type ContractVersions struct {
-	L1CrossDomainMessenger       VersionedContract `toml:"l1_cross_domain_messenger,omitempty"`
-	L1ERC721Bridge               VersionedContract `toml:"l1_erc721_bridge,omitempty"`
-	L1StandardBridge             VersionedContract `toml:"l1_standard_bridge,omitempty"`
-	L2OutputOracle               VersionedContract `toml:"l2_output_oracle,omitempty"`
-	OptimismMintableERC20Factory VersionedContract `toml:"optimism_mintable_erc20_factory,omitempty"`
-	OptimismPortal               VersionedContract `toml:"optimism_portal,omitempty"`
-	OptimismPortal2              VersionedContract `toml:"optimism_portal2,omitempty"`
-	SystemConfig                 VersionedContract `toml:"system_config,omitempty"`
-	// Superchain-wide contracts:
-	ProtocolVersions VersionedContract `toml:"protocol_versions,omitempty"`
-	SuperchainConfig VersionedContract `toml:"superchain_config,omitempty"`
-	// Fault Proof contracts:
-	AnchorStateRegistry     VersionedContract `toml:"anchor_state_registry,omitempty"`
-	DelayedWETH             VersionedContract `toml:"delayed_weth,omitempty"`
-	DisputeGameFactory      VersionedContract `toml:"dispute_game_factory,omitempty"`
-	FaultDisputeGame        VersionedContract `toml:"fault_dispute_game,omitempty"`
-	MIPS                    VersionedContract `toml:"mips,omitempty"`
-	PermissionedDisputeGame VersionedContract `toml:"permissioned_dispute_game,omitempty"`
-	PreimageOracle          VersionedContract `toml:"preimage_oracle,omitempty"`
-	CannonFaultDisputeGame  VersionedContract `toml:"cannon_fault_dispute_game,omitempty"`
+type ContractVersions MappedContractProperties[VersionedContract]
+
+// GetNonEmpty returns a slice of contract names, with an entry for each contract
+// in the receiver with a non empty Version property.
+func (c ContractVersions) GetNonEmpty() []string {
+	// Get the value and type of the struct
+	v := reflect.ValueOf(c)
+	t := reflect.TypeOf(c)
+
+	var fieldNames []string
+
+	// Iterate through the struct fields
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		// Ensure the field is of type VersionedContract
+		if field.Type() == reflect.TypeOf(VersionedContract{}) {
+			// Get the Version field from the VersionedContract
+			versionField := field.FieldByName("Version")
+
+			// Check if the Version is non-empty
+			if versionField.IsValid() && versionField.String() != "" {
+				fieldNames = append(fieldNames, fieldType.Name)
+			}
+		}
+	}
+
+	return fieldNames
 }
 
 // VersionFor returns the version for the supplied contract name, if it exits
 // (and an error otherwise). Useful for slicing into the struct using a string.
 func (c ContractVersions) VersionFor(contractName string) (string, error) {
-	var version string
-	switch contractName {
-	case "L1CrossDomainMessenger":
-		version = c.L1CrossDomainMessenger.Version
-	case "L1ERC721Bridge":
-		version = c.L1ERC721Bridge.Version
-	case "L1StandardBridge":
-		version = c.L1StandardBridge.Version
-	case "L2OutputOracle":
-		version = c.L2OutputOracle.Version
-	case "OptimismMintableERC20Factory":
-		version = c.OptimismMintableERC20Factory.Version
-	case "OptimismPortal":
-		version = c.OptimismPortal.Version
-	case "OptimismPortal2":
-		version = c.OptimismPortal2.Version
-	case "SystemConfig":
-		version = c.SystemConfig.Version
-	case "AnchorStateRegistry":
-		version = c.AnchorStateRegistry.Version
-	case "DelayedWETH":
-		version = c.DelayedWETH.Version
-	case "DisputeGameFactory":
-		version = c.DisputeGameFactory.Version
-	case "FaultDisputeGame":
-		version = c.FaultDisputeGame.Version
-	case "MIPS":
-		version = c.MIPS.Version
-	case "PermissionedDisputeGame":
-		version = c.PermissionedDisputeGame.Version
-	case "PreimageOracle":
-		version = c.PreimageOracle.Version
-	case "ProtocolVersions":
-		version = c.ProtocolVersions.Version
-	case "SuperchainConfig":
-		version = c.SuperchainConfig.Version
-	case "CannonFaultDisputeGame":
-		version = c.CannonFaultDisputeGame.Version
-	default:
+	// Use reflection to get the value of the struct
+	val := reflect.ValueOf(c)
+	// Get the field by name (contractName)
+	field := val.FieldByName(contractName)
+
+	// Check if the field exists and is a struct
+	if !field.IsValid() {
 		return "", errors.New("no such contract name")
 	}
-	if version == "" {
+
+	// Check if the struct contains the "Version" field
+	versionField := field.FieldByName("Version")
+	if !versionField.IsValid() || versionField.String() == "" {
 		return "", errors.New("no version specified")
 	}
-	return version, nil
+
+	// Return the version if it's a string
+	if versionField.Kind() == reflect.String {
+		return versionField.String(), nil
+	}
+
+	return "", errors.New("version is not a string")
 }
 
 // Check will sanity check the validity of the semantic version strings
@@ -559,8 +514,9 @@ type SuperchainConfig struct {
 	Name string           `toml:"name"`
 	L1   SuperchainL1Info `toml:"l1"`
 
-	ProtocolVersionsAddr *Address `toml:"protocol_versions_addr,omitempty"`
-	SuperchainConfigAddr *Address `toml:"superchain_config_addr,omitempty"`
+	ProtocolVersionsAddr        *Address `toml:"protocol_versions_addr,omitempty"`
+	SuperchainConfigAddr        *Address `toml:"superchain_config_addr,omitempty"`
+	OPContractsManagerProxyAddr *Address `toml:"op_contracts_manager_proxy_addr,omitempty"`
 
 	// Hardfork Configuration. These values may be overridden by individual chains.
 	hardForkDefaults HardForkConfiguration

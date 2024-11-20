@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum-optimism/superchain-registry/add-chain/config"
 	"github.com/ethereum-optimism/superchain-registry/add-chain/flags"
 	"github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/superchain-registry/validation"
 	"github.com/ethereum-optimism/superchain-registry/validation/genesis"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -218,12 +219,12 @@ func inferIsFaultProofs(systemConfigProxyAddress, optimismPortalProxyAddress sup
 	}
 
 	// Portal version `3` is the first version of the `OptimismPortal` that supported the fault proof system.
-	version, err := castCall(optimismPortalProxyAddress, "version()(string)", l1RpcUrl)
+	castResult, err := validation.CastCall(optimismPortalProxyAddress, "version()(string)", nil, l1RpcUrl)
 	if err != nil {
 		return false, fmt.Errorf("failed to get OptimismPortalProxy.version(): %w", err)
 	}
 
-	version, err = strconv.Unquote(version)
+	version, err := strconv.Unquote(castResult[0])
 	if err != nil {
 		return false, fmt.Errorf("failed to parse OptimismPortalProxy.version(): %w", err)
 	}
@@ -244,8 +245,21 @@ func getGasPayingToken(l1rpcURl string, SystemConfigAddress superchain.Address) 
 	if err != nil {
 		return nil, err
 	}
-
 	opts := bind.CallOpts{}
+
+	usingCustomGasToken, err := sc.IsCustomGasToken(&opts)
+	if err != nil {
+		if strings.Contains(err.Error(), "execution reverted") {
+			// This happens when the SystemConfig contract
+			// does not yet have the CGT functionality.
+			return nil, nil
+		}
+		return nil, err
+	}
+	if !usingCustomGasToken {
+		return nil, nil
+	}
+
 	result, err := sc.GasPayingToken(&opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "execution reverted") {
@@ -255,7 +269,6 @@ func getGasPayingToken(l1rpcURl string, SystemConfigAddress superchain.Address) 
 		}
 		return nil, err
 	}
-
 	if (result.Addr == common.Address{}) {
 		// This happens with the SystemConfig contract
 		// does have the CGT functionality, but it has
