@@ -11,6 +11,7 @@ delta_time = 1718920167 # Thu 20 Jun 2024 21:49:27 UTC
 ecotone_time = 1718920168 # Thu 20 Jun 2024 21:49:28 UTC
 fjord_time = 1722297600 # Tue 30 Jul 2024 00:00:00 UTC
 granite_time = 1726470000 # Mon 16 Sep 2024 07:00:00 UTC
+holocene_time = 1735200000 # Thu Dec 26 08:00:00 UTC
 block_time = 2
 seq_window_size = 3600
 max_sequencer_drift = 600
