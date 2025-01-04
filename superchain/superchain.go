@@ -55,6 +55,7 @@ type SystemConfig struct {
 }
 
 type HardForkConfiguration struct {
+	RegolithTime *uint64 `json:"regolith_time,omitempty" toml:"regolith_time,omitempty"`
 	CanyonTime   *uint64 `json:"canyon_time,omitempty" toml:"canyon_time,omitempty"`
 	DeltaTime    *uint64 `json:"delta_time,omitempty" toml:"delta_time,omitempty"`
 	EcotoneTime  *uint64 `json:"ecotone_time,omitempty" toml:"ecotone_time,omitempty"`
