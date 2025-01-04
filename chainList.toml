@@ -18,6 +18,7 @@
   rpc = ["https://mainnet.optimism.io"]
   explorers = ["https://explorer.optimism.io"]
   superchain_level = 1
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -30,6 +31,7 @@
   rpc = ["https://rpc.ata.network"]
   explorers = ["https://explorer.ata.network"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "alt-da"
   gas_paying_token = "0xA2120b9e674d3fC3875f415A7DF52e382F141225"
   [chains.parent]
@@ -43,6 +45,7 @@
   rpc = ["https://mainnet.base.org"]
   explorers = ["https://explorer.base.org"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -55,6 +58,7 @@
   rpc = ["https://rpc.cyber.co"]
   explorers = ["https://cyberscan.co/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "alt-da"
   [chains.parent]
     type = "L2"
@@ -67,6 +71,7 @@
   rpc = ["https://mainnet.ethernitychain.io"]
   explorers = ["https://ernscan.io"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -79,6 +84,7 @@
   rpc = ["https://rpc-mainnet.funkichain.com"]
   explorers = ["https://funki.superscan.network"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "alt-da"
   [chains.parent]
     type = "L2"
@@ -91,6 +97,7 @@
   rpc = ["https://rpc.api.lisk.com"]
   explorers = ["https://blockscout.lisk.com"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -115,6 +122,7 @@
   rpc = ["https://rpc.lyra.finance"]
   explorers = ["https://explorer.lyra.finance"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "alt-da"
   [chains.parent]
     type = "L2"
@@ -127,6 +135,7 @@
   rpc = ["https://rpc.metall2.com"]
   explorers = ["https://explorer.metall2.com"]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -139,6 +148,7 @@
   rpc = ["https://mainnet.mode.network"]
   explorers = ["https://explorer.mode.network"]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -151,6 +161,7 @@
   rpc = ["https://rpc.orderly.network"]
   explorers = ["https://explorer.orderly.network"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "alt-da"
   [chains.parent]
     type = "L2"
@@ -163,6 +174,7 @@
   rpc = ["https://racemainnet.io"]
   explorers = ["https://racescan.io/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -175,6 +187,7 @@
   rpc = ["https://mainnet.shape.network/"]
   explorers = ["https://shape-mainnet.explorer.alchemy.com/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -187,6 +200,20 @@
   rpc = ["https://mainnet-rpc.swanchain.org"]
   explorers = ["https://swanscan.io"]
   superchain_level = 0
+  governed_by_optimism = false
+  data_availability_type = "eth-da"
+  [chains.parent]
+    type = "L2"
+    chain = "mainnet"
+
+[[chains]]
+  name = "Swellchain"
+  identifier = "mainnet/swell"
+  chain_id = 1923
+  rpc = ["https://swell-mainnet.alt.technology"]
+  explorers = ["https://explorer.swellnetwork.io"]
+  superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -199,6 +226,7 @@
   rpc = ["https://rpc.zero.thebinaryholdings.com"]
   explorers = ["https://explorer.thebinaryholdings.com"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   gas_paying_token = "0x04E9D7e336f79Cdab911b06133D3Ca2Cd0721ce3"
   [chains.parent]
@@ -212,6 +240,7 @@
   rpc = ["https://worldchain-mainnet.g.alchemy.com/public"]
   explorers = ["https://worldchain-mainnet.explorer.alchemy.com/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -224,6 +253,7 @@
   rpc = ["https://rpc.zora.energy"]
   explorers = ["https://explorer.zora.energy"]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -236,6 +266,7 @@
   rpc = ["https://sepolia.optimism.io"]
   explorers = ["https://sepolia-optimistic.etherscan.io"]
   superchain_level = 1
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -248,6 +279,7 @@
   rpc = ["https://sepolia.base.org"]
   explorers = ["https://sepolia-explorer.base.org"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -260,6 +292,7 @@
   rpc = ["https://rpc.testnet.cyber.co"]
   explorers = ["https://testnet.cyberscan.co/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -272,6 +305,7 @@
   rpc = ["https://testnet.ethernitychain.io"]
   explorers = ["https://testnet.ernscan.io"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -284,7 +318,21 @@
   rpc = ["https://funki-testnet.alt.technology"]
   explorers = ["https://sepolia-sandbox.funkichain.com/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "alt-da"
+  [chains.parent]
+    type = "L2"
+    chain = "sepolia"
+
+[[chains]]
+  name = "Ink Sepolia"
+  identifier = "sepolia/ink"
+  chain_id = 763373
+  rpc = ["https://rpc-gel-sepolia.inkonchain.com"]
+  explorers = ["https://explorer-sepolia.inkonchain.com"]
+  superchain_level = 0
+  governed_by_optimism = true
+  data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
     chain = "sepolia"
@@ -296,6 +344,7 @@
   rpc = ["https://rpc.sepolia-api.lisk.com"]
   explorers = ["https://sepolia-blockscout.lisk.com"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -320,6 +369,7 @@
   rpc = ["https://testnet.rpc.metall2.com"]
   explorers = ["https://testnet.explorer.metall2.com"]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -332,6 +382,7 @@
   rpc = ["https://rpc.minato.soneium.org"]
   explorers = ["https://soneium-minato.blockscout.com/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -344,6 +395,7 @@
   rpc = ["https://sepolia.mode.network"]
   explorers = ["https://sepolia.explorer.mode.network"]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -356,6 +408,7 @@
   rpc = ["https://racetestnet.io"]
   explorers = ["https://testnet.racescan.io/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -368,6 +421,7 @@
   rpc = ["https://sepolia.shape.network/"]
   explorers = ["https://shape-sepolia.explorer.alchemy.com/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -380,6 +434,7 @@
   rpc = ["https://rpc.testnet.thebinaryholdings.com"]
   explorers = ["https://explorer.sepolia.thebinaryholdings.com"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   gas_paying_token = "0x46d878bf7BF62Ec542953CB89Ac0bF58d991181e"
   [chains.parent]
@@ -393,6 +448,7 @@
   rpc = ["https://sepolia.unichain.org"]
   explorers = ["https://sepolia.uniscan.xyz"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -405,6 +461,7 @@
   rpc = ["https://worldchain-sepolia.g.alchemy.com/public"]
   explorers = ["https://worldchain-sepolia.explorer.alchemy.com/"]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -417,6 +474,7 @@
   rpc = ["https://sepolia.rpc.zora.energy"]
   explorers = ["https://sepolia.explorer.zora.energy"]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -429,6 +487,7 @@
   rpc = [""]
   explorers = [""]
   superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -454,6 +513,7 @@
   rpc = [""]
   explorers = [""]
   superchain_level = 0
+  governed_by_optimism = true
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
