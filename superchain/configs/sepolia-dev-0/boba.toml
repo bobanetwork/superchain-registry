@@ -5,18 +5,20 @@ sequencer_rpc = "https://devnet.boba.network"
 explorer = ""
 superchain_level = 1
 batch_inbox_addr = "0xfFF0000000000000000000000000000000288882"
-regolith_time = 0
-canyon_time = 1724692140 # Mon 26 Aug 2024 17:09:00 UTC
-delta_time = 1724692140 # Mon 26 Aug 2024 17:09:00 UTC
-ecotone_time = 1724692141 # Mon 26 Aug 2024 17:09:01 UTC
-fjord_time = 1724692150 # Mon 26 Aug 2024 17:09:10 UTC
-granite_time = 1724914800 # Thu Aug 29 07:00:00 UTC
-holocene_time = 1732435200 # Mon Nov 25 08:00:00 UTC
 block_time = 2
 seq_window_size = 3600
 max_sequencer_drift = 600
 data_availability_type = "eth-da"
 gas_paying_token = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+
+[hardforks]
+  regolith_time = 0
+  canyon_time = 1724692140 # Mon 26 Aug 2024 17:09:00 UTC
+  delta_time = 1724692140 # Mon 26 Aug 2024 17:09:00 UTC
+  ecotone_time = 1724692141 # Mon 26 Aug 2024 17:09:01 UTC
+  fjord_time = 1724692150 # Mon 26 Aug 2024 17:09:10 UTC
+  granite_time = 1724914800 # Thu Aug 29 07:00:00 UTC
+  holocene_time = 1732435200 # Mon Nov 25 08:00:00 UTC
 
 [optimism]
   eip1559_elasticity = 6
