@@ -18,6 +18,7 @@ data_availability_type = "eth-da"
   fjord_time = 1722297600 # Tue 30 Jul 2024 00:00:00 UTC
   granite_time = 1726470000 # Mon 16 Sep 2024 07:00:00 UTC
   holocene_time = 1736150400 # Mon Jan 06 08:00:00 UTC
+  pectra_blob_schedule_time = 1742486400 # Thu 20 Mar 2025 16:00:00 UTC
 
 [optimism]
   eip1559_elasticity = 6
