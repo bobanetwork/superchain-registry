@@ -15,12 +15,11 @@ const (
 	MainnetSuperchain     Superchain = "mainnet"
 	SepoliaSuperchain     Superchain = "sepolia"
 	SepoliaDev0Superchain Superchain = "sepolia-dev-0"
-	BnbTestnetSuperchain  Superchain = "bnb-testnet" // for Boba chain_id 9728
 )
 
 func ParseSuperchain(in string) (Superchain, error) {
 	switch Superchain(in) {
-	case MainnetSuperchain, SepoliaSuperchain, SepoliaDev0Superchain, BnbTestnetSuperchain:
+	case MainnetSuperchain, SepoliaSuperchain, SepoliaDev0Superchain:
 		return Superchain(in), nil
 	default:
 		return "", fmt.Errorf("unknown superchain: '%s'", in)
