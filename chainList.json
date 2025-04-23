@@ -228,6 +228,9 @@
     "parent": {
       "type": "L2",
       "chain": "mainnet"
+    },
+    "faultProofs": {
+      "status": ""
     }
   },
   {
@@ -1142,7 +1145,7 @@
       "https://devnet.boba.network"
     ],
     "explorers": [
-      ""
+      "https://__PLACEHOLDER__.boba.network"
     ],
     "superchainLevel": 0,
     "governedByOptimism": false,
@@ -1151,7 +1154,10 @@
       "type": "L2",
       "chain": "sepolia-dev-0"
     },
-    "gasPayingToken": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+    "gasPayingToken": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "faultProofs": {
+      "status": "permissionless"
+    }
   },
   {
     "name": "OP Labs Sepolia devnet 0",

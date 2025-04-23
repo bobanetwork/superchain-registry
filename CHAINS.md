@@ -8,6 +8,7 @@
 | BOB | ❌ | ✅ | https://explorer.gobob.xyz | `https://rpc.gobob.xyz` | `https://rpc.gobob.xyz` |
 | Base | ❌ | ✅ | https://explorer.base.org | `https://mainnet.base.org` | `https://mainnet-sequencer.base.org` |
 | Binary Mainnet | ❌ | ✅ | https://explorer.thebinaryholdings.com | `https://rpc.zero.thebinaryholdings.com` | `https://sequencer.bnry.mainnet.zeeve.net` |
+| Boba Mainnet | ❌ | ❌ | https://bobascan.com | `https://mainnet.boba.network` | `https://mainnet.boba.network` |
 | Cyber Mainnet | ❌ | ❌ | https://cyberscan.co/ | `https://rpc.cyber.co` | `https://cyber.alt.technology/` |
 | Ethernity | ❌ | ✅ | https://ernscan.io | `https://mainnet.ethernitychain.io` | `https://mainnet.ethernitychain.io` |
 | Funki | ❌ | ❌ | https://funki.superscan.network | `https://rpc-mainnet.funkichain.com` | `https://rpc-mainnet.funkichain.com` |
@@ -65,6 +66,7 @@
 | Chain Name | OP Governed[^1] | Superchain Hardforks[^2] | Explorer | Public RPC | Sequencer RPC
 |---|---|---|---|---|---|
 | Base devnet 0 | ❌ | ✅ |  | `` | `` |
+| Boba Devnet | ❌ | ❌ | https://__PLACEHOLDER__.boba.network | `https://devnet.boba.network` | `https://devnet.boba.network` |
 | OP Labs Sepolia devnet 0 | ✅ | ✅ |  | `` | `` |
 
 
