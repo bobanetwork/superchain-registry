@@ -1,23 +1,5 @@
 [
   {
-    "name": "Boba BNB Testnet",
-    "identifier": "bnb-testnet/boba",
-    "chainId": 9728,
-    "rpc": [
-      "https://testnet.bnb.boba.network"
-    ],
-    "explorers": [
-      "https://testnet.bnb.bobascan.com"
-    ],
-    "superchainLevel": 1,
-    "dataAvailabilityType": "eth-da",
-    "parent": {
-      "type": "L2",
-      "chain": "bnb-testnet"
-    },
-    "gasPayingToken": "0x875cD11fDf085e0E11B0EE6b814b6d0b38fA554C"
-  },
-  {
     "name": "Automata Mainnet",
     "identifier": "mainnet/automata",
     "chainId": 65536,
