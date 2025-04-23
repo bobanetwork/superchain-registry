@@ -1,17 +1,4 @@
 [[chains]]
-  name = "Boba BNB Testnet"
-  identifier = "bnb-testnet/boba"
-  chain_id = 9728
-  rpc = ["https://testnet.bnb.boba.network"]
-  explorers = ["https://testnet.bnb.bobascan.com"]
-  superchain_level = 1
-  data_availability_type = "eth-da"
-  gas_paying_token = "0x875cD11fDf085e0E11B0EE6b814b6d0b38fA554C"
-  [chains.parent]
-    type = "L2"
-    chain = "bnb-testnet"
-
-[[chains]]
   name = "Automata Mainnet"
   identifier = "mainnet/automata"
   chain_id = 65536
