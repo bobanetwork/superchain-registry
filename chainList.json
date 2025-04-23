@@ -222,7 +222,8 @@
     "explorers": [
       "https://bobascan.com"
     ],
-    "superchainLevel": 1,
+    "superchainLevel": 0,
+    "governedByOptimism": false,
     "dataAvailabilityType": "eth-da",
     "parent": {
       "type": "L2",
@@ -1143,7 +1144,8 @@
     "explorers": [
       ""
     ],
-    "superchainLevel": 1,
+    "superchainLevel": 0,
+    "governedByOptimism": false,
     "dataAvailabilityType": "eth-da",
     "parent": {
       "type": "L2",

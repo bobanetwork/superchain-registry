@@ -157,7 +157,8 @@
   chain_id = 288
   rpc = ["https://mainnet.boba.network"]
   explorers = ["https://bobascan.com"]
-  superchain_level = 1
+  superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   [chains.parent]
     type = "L2"
@@ -815,7 +816,8 @@
   chain_id = 288882
   rpc = ["https://devnet.boba.network"]
   explorers = [""]
-  superchain_level = 1
+  superchain_level = 0
+  governed_by_optimism = false
   data_availability_type = "eth-da"
   gas_paying_token = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
   [chains.parent]
