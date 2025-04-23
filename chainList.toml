@@ -815,7 +815,7 @@
   identifier = "sepolia-dev-0/boba"
   chain_id = 288882
   rpc = ["https://devnet.boba.network"]
-  explorers = [""]
+  explorers = ["https://__PLACEHOLDER__.boba.network"]
   superchain_level = 0
   governed_by_optimism = false
   data_availability_type = "eth-da"
@@ -823,6 +823,8 @@
   [chains.parent]
     type = "L2"
     chain = "sepolia-dev-0"
+  [chains.fault_proofs]
+    status = "permissionless"
 
 [[chains]]
   name = "OP Labs Sepolia devnet 0"
