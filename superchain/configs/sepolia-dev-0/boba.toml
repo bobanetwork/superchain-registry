@@ -1,7 +1,7 @@
 name = "Boba Devnet"
 public_rpc = "https://devnet.boba.network"
 sequencer_rpc = "https://devnet.boba.network"
-explorer = ""
+explorer = "https://__PLACEHOLDER__.boba.network"
 superchain_level = 0
 governed_by_optimism = false
 data_availability_type = "eth-da"
@@ -51,6 +51,7 @@ gas_paying_token = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 [addresses]
   L1ERC721BridgeProxy = "0x57B679c04EAe2A9cee67414511E4A9f5a9F674E3"
+  L1StandardBridgeProxy = "0x9F10198e4c1e267757ca55ed29F028b8cD7Ee76D"
   L2OutputOracleProxy = "0xcFf51852d3E96912ea1cC8C6F12D6c86b0B37B4F"
   OptimismMintableERC20FactoryProxy = "0xd5C40568cB199cCc3bC6d4931742074225781686"
   OptimismPortalProxy = "0xD00d5Cc5620697a31014E5594AABba590793836D"
