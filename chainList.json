@@ -230,7 +230,7 @@
       "chain": "mainnet"
     },
     "faultProofs": {
-      "status": ""
+      "status": "none"
     }
   },
   {
