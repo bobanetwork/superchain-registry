@@ -59,7 +59,7 @@ state file, however you will need to populate the following yourself:
 - `sequencer_rpc`: Sequencer RPC endpoint for your chain.
 - `explorer`: Block explorer for your chain.
 - `deployment_tx_hash`: Transaction hash of the transaction OP Deployer generated to deploy your chain. You'll need
-  to look this up on Etherscan for now. It will be automatically populated in the future.
+  to look this up on Blockscout for now. It will be automatically populated in the future.
 
 Don't forget to double-check the config for any inaccuracies.
 
@@ -217,3 +217,34 @@ To ZST-encode your genesis file, run
 `zstd -D superchain-registry/superchain/extra/dictionary <your-genesis.json>`.
 
 Put the generated file in the `.staging` directory alongside the config file.
+
+
+## Adding a devnet
+There is an `import_devnet` command which allows for multiple chains deployed together with op-deployer to be added to the registry with one command.
+It requires the op-deployer `state.json` as above, but in addition requires a `manifest.yaml` file with at least the following fields:
+
+```yaml
+name: interop-rc-betanet
+l2:
+  chains:
+  - name: interop-rc-beta-0
+    chain_id: 420110009
+  - name: interop-rc-beta-1
+    chain_id: 420110010
+```
+
+The ordering of chains in the manifest needs to match the ordering the `state.json` file.
+
+### Example usage
+
+```
+just import-devnet ../devnets/alphanets/interop-rc-alpha/op-deployer/state.json ../devnets/alphanets/interop-rc-alpha/manifest.yaml
+```
+
+`import_devnet` will generate a chain config for each chain in the staging directory, and also generate an appropriate `superchain.toml` superchain definition file specific to the devnet being added.
+
+```
+just sync-staging --l1-rpc-urls=https://ethereum-sepolia-rpc.publicnode.com
+```
+
+`sync_staging` will then copy all of the usual files over to the `superchain` directory, as well as the `superchain.toml` file. A new directory will be created if necessary.

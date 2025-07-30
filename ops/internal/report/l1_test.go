@@ -10,7 +10,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/superchain-registry/ops/internal/testutil/mockrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +19,7 @@ import (
 )
 
 func TestParseDeployedEvent(t *testing.T) {
-	// Taken from the deployment at https://etherscan.io/tx/0x18c55303075270503bec79e66c444c15d943598f25fbf467044b3c5dda9e7d58.
+	// Taken from the deployment at https://eth.blockscout.com/tx/0x18c55303075270503bec79e66c444c15d943598f25fbf467044b3c5dda9e7d58.
 	rawLogF, err := os.Open("testdata/tx-18c55303075270503bec79e66c444c15d943598f25fbf467044b3c5dda9e7d58.bin")
 	require.NoError(t, err)
 	defer rawLogF.Close()
@@ -86,7 +85,7 @@ func TestScanL1(t *testing.T) {
 			ctx,
 			client,
 			deploymentTx,
-			&artifacts.Locator{Tag: release},
+			release,
 		)
 		require.ErrorContains(t, err, expErr)
 		mock.AssertExpectations(t)

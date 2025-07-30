@@ -21,12 +21,12 @@ var funcMap = template.FuncMap{
 		return t.UTC().Format(time.RFC3339)
 	},
 	"deploymentTxLink": func(report L1Report) string {
-		var subdomain string
+		subdomain := "eth."
 		if report.DeploymentChainID != 1 {
-			subdomain = "sepolia."
+			subdomain = "eth-sepolia."
 		}
 
-		return fmt.Sprintf("[%s](https://%setherscan.io/tx/%s)", report.DeploymentTxHash, subdomain, report.DeploymentTxHash)
+		return fmt.Sprintf("[%s](https://%sblockscout.com/tx/%s)", report.DeploymentTxHash, subdomain, report.DeploymentTxHash)
 	},
 	"checkmark": func(a, b string) string {
 		if a == b {
@@ -100,24 +100,27 @@ func RenderComment(
 	stdPrestate validation.Prestate,
 	stdVersions validation.VersionConfig,
 	gitSHA string,
+	chainShortName string,
 ) (string, error) {
 	var buf bytes.Buffer
 	data := struct {
-		Report      *Report
-		StdConfig   validation.ConfigParams
-		StdVersions validation.VersionConfig
-		StdRoles    validation.RolesConfig
-		StdPrestate validation.Prestate
-		Magic       string
-		GitSHA      string
+		Report         *Report
+		StdConfig      validation.ConfigParams
+		StdVersions    validation.VersionConfig
+		StdRoles       validation.RolesConfig
+		StdPrestate    validation.Prestate
+		Magic          string
+		GitSHA         string
+		ChainShortName string
 	}{
-		Report:      report,
-		StdConfig:   stdConfigs,
-		StdRoles:    stdRoles,
-		StdPrestate: stdPrestate,
-		StdVersions: stdVersions,
-		Magic:       CommentMagic,
-		GitSHA:      gitSHA,
+		Report:         report,
+		StdConfig:      stdConfigs,
+		StdRoles:       stdRoles,
+		StdPrestate:    stdPrestate,
+		StdVersions:    stdVersions,
+		Magic:          CommentMagic,
+		GitSHA:         gitSHA,
+		ChainShortName: chainShortName,
 	}
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", err
